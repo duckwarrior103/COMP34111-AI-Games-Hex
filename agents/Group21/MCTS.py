@@ -15,7 +15,7 @@ class MCTS:
         self.root: MCTSNode | None = None
         self.exploration_weight = exploration_weight
 
-    def run(self, time_limit: float = 0.5, iterations: int = 1000) -> Move:
+    def run(self, time_limit: float = 0.5, iterations: int = 2000) -> Move:
         assert self.root is not None, "Call update(board, opp_move) before run() to set root."
 
         end_time = time.time() + time_limit
@@ -88,19 +88,61 @@ class MCTS:
             x, y = move
 
         n = board.size
+        my = self.colour
+        opp = Colour.opposite(my)
 
         # Compute distance to the target winning side
-        if self.colour == Colour.RED:
-            dist = min(y, n-1-y)
+        if my == Colour.RED:
+            dist_goal = min(y, n-1-y)
+            goal_axis = 1  # y-direction
         else:
-            dist = min(x, n-1-x)
+            dist_goal = min(x, n-1-x)
+            goal_axis = 0  # x-direction
 
         # Computes center preference (the more center the better)
-        cx = abs(x - n/2)
-        cy = abs(y - n/2)
-        center_score = - (cx + cy)
+        center_score = -((x - n/2)**2 + (y - n/2)**2)
 
-        return -dist + 0.3 * center_score
+        # When adjacent is own color
+        adj_bonus = 0
+        for dx, dy in [(1,0),(-1,0),(0,1),(0,-1),(1,-1),(-1,1)]:
+            nx, ny = x+dx, y+dy
+            if 0 <= nx < n and 0 <= ny < n:
+                if board.tiles[nx][ny].colour == my:
+                    adj_bonus += 3
+                if board.tiles[nx][ny].colour == opp:
+                    adj_bonus -= 1
+
+        # Diagonal cells, where empty space in between is almost impossible for opponent to break
+        bridge_bonus = 0
+        bridge_patterns = [
+            (1,0, 0,1),
+            (0,1, 1,0),
+            (-1,0, 0,-1),
+            (0,-1, -1,0)
+        ]
+
+        for dx, dy, ex, ey in bridge_patterns:
+            x1, y1 = x + dx, y + dy
+            x2, y2 = x + ex, y + ey
+
+            if not (0 <= x1 < n and 0 <= y1 < n and 
+                    0 <= x2 < n and 0 <= y2 < n):
+                continue
+
+            if board.tiles[x1][y1].colour == my and board.tiles[x2][y2].colour == my:
+                if goal_axis == 1: 
+                    if y1 != y2:
+                        bridge_bonus += 6
+                else:
+                    if x1 != x2:
+                        bridge_bonus += 6
+
+        return (
+            -2 * dist_goal +
+            adj_bonus +
+            bridge_bonus +
+            0.15 * center_score
+        )
 
     def _simulate(self, node: MCTSNode) -> float:
         board = copy.deepcopy(node.board)
