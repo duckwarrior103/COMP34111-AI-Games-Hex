@@ -46,7 +46,7 @@ class MCTS:
         best_move, best_child = max(self.root.children.items(), key=lambda c: c[1].N)
         print(f'Best move was {best_move} with Q={best_child.Q}, N={best_child.N}')
         print(f'MCTS iterations done: {iterations - iters_left}')
-        r, c = DisjointSetBoard.index_to_coords(best_move)
+        r, c = best_move
         return Move(r, c)
 
     def update(self, board: Board, opp_move: Move | None) -> None:
@@ -104,7 +104,7 @@ class MCTS:
 
     def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[tuple[int, int]]:
         n = board.N
-        possible_moves = [DisjointSetBoard.index_to_coords(move) for move in board.possible_moves]
+        possible_moves = board.possible_moves
 
         # Prefer moves adjacent to existing own color
         good = []

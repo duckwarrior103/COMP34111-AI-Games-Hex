@@ -16,7 +16,7 @@ class MCTSNode():
         self.colour = colour
         self.parent = parent
 
-        self.children: dict[int, MCTSNode] = {} # Key is 1D coordinate for move, value is the Node it leads to
+        self.children: dict[tuple[int, int], MCTSNode] = {} # Key is 1D coordinate for move, value is the Node it leads to
         self.Q = 0 # Total reward
         self.N = 0 # Total number of visits
 
@@ -28,23 +28,22 @@ class MCTSNode():
         """Returns True if this all children of this node have been explored at least once"""
         return not self.unexplored_moves
 
-    # TODO: Removing from middle of the list is O(n), could remove from the end instead if further optimisation needed
     def expand(self) -> 'MCTSNode':
         """
         Selects a random unexplored move, removing it from the list
         before creating the child MCTSNode and adding to self.children.
         """
         random_index = randrange(len(self.unexplored_moves))
-        move_index = self.unexplored_moves[random_index]
+        r, c = self.unexplored_moves[random_index]
 
+        # Swap with last element and pop for O(1) removal
+        # Not sure how much difference this actually makes
         last_index = len(self.unexplored_moves) - 1
         if random_index != last_index:
             self.unexplored_moves[random_index] = self.unexplored_moves[last_index]
         self.unexplored_moves.pop()
 
         # Convert to 2D indices
-        r, c = DisjointSetBoard.index_to_coords(move_index)
-
         board_copy = copy.deepcopy(self.board)
         board_copy.place(r, c, self.colour)
 
@@ -53,5 +52,5 @@ class MCTSNode():
             board=board_copy,
             parent=self
         )
-        self.children[move_index] = child_node
+        self.children[(r, c)] = child_node
         return child_node

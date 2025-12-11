@@ -17,9 +17,15 @@ class DisjointSetBoard:
 
     def __init__(self):
         self.state = [0] * self.SIZE # A 1D coordinate system
-        self.possible_moves = set(range(self.SIZE)) # Set for O(1) removal
         self.parents = list(range(self.SIZE + 4)) # Each element is initially its own parent
         self.ranks = [0] * (self.SIZE + 4)
+
+        # Using a set for O(1) removal
+        self.possible_moves = set(
+            (r, c)
+            for r in range(self.N)
+            for c in range(self.N)
+        )
 
     @classmethod
     def from_existing_board(cls, board: Board) -> 'DisjointSetBoard':
@@ -34,7 +40,7 @@ class DisjointSetBoard:
     @staticmethod
     def index_to_coords(index: int) -> tuple[int, int]:
         """Converts a 1D DisjointSetBoard index to its 2D coordinate (r, c) form."""
-        return index // DisjointSetBoard.N, index % DisjointSetBoard.N
+        return divmod(index, index)
 
     @staticmethod
     def coords_to_index(r: int, c: int) -> int:
@@ -78,7 +84,7 @@ class DisjointSetBoard:
             elif c == self.N - 1:
                 self._union(index, self.BLUE_RIGHT)
 
-        self.possible_moves.remove(index)
+        self.possible_moves.remove((r, c))
         return self.check_winner()
 
     def check_winner(self) -> Colour | None:
