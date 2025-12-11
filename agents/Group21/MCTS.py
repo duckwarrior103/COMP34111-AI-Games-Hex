@@ -3,6 +3,7 @@ import math
 import time
 from random import choice
 
+from agents.Group21.disjoint_set_board import DisjointSetBoard
 from agents.Group21.MCTSNode import MCTSNode
 from src.Board import Board
 from src.Colour import Colour
@@ -23,36 +24,43 @@ class MCTS:
 
         while iters_left > 0 and time.time() < end_time:
             leaf = self._select()
-            child = self._expand(leaf) if not leaf.is_terminal else leaf
+            child = leaf.expand() if not leaf.is_terminal else leaf
             reward = self._simulate(child)
             self._backpropagate(child, reward)
             iters_left -= 1
 
         if not self.root.children:
             fallback_move = choice(self.root.unexplored_moves)
-            return fallback_move
+            r, c = DisjointSetBoard.index_to_coords(fallback_move)
+            return Move(r, c)
 
         # Picking the child with the highest visit count
         best_move, best_child = max(self.root.children.items(), key=lambda child: child[1].N)
         print(f'Best move was {best_move} with Q={best_child.Q}, N={best_child.N}')
-        return best_move
+        print(f'Iterations done: {iterations - iters_left}')
+        r, c = DisjointSetBoard.index_to_coords(best_move)
+        return Move(r, c)
 
-    # TODO: Should we prune the old states? Do we need to keep track?
     def update(self, board: Board, opp_move: Move | None) -> None:
         """Given a move, find the corresponding child of the root and set that as the new root"""
+        # TODO: Create helper method
+        opp_move_idx = None
+        if opp_move is not None:
+            opp_move_idx = opp_move.x * DisjointSetBoard.N + opp_move.y
 
-        # Initial set up
+        # No prior move, do initial set up
         if self.root is None:
-            self.root = MCTSNode(self.colour, board)
+            self.root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
             return
 
-        # Check if we have a node for the opponent's move, in which case we can reuse
-        if opp_move in self.root.children:
-            self.root = self.root.children[opp_move]
+        # Reuse tree if possible
+        if opp_move_idx is not None and opp_move_idx in self.root.children:
+            self.root = self.root.children[opp_move_idx]
             self.root.parent = None
-            return
-
-        self.root = MCTSNode(self.colour, board)
+        # Otherwise create a completely new node with the board
+        else:
+            dsu_board = DisjointSetBoard.from_existing_board(board)
+            self.root = MCTSNode(self.colour, dsu_board)
 
     def _select(self) -> MCTSNode:
         """Find an unexplored descendent of the root node"""
@@ -61,7 +69,6 @@ class MCTS:
             node = self._uct_select(node)
         return node
 
-    # TODO: Division by 0 for N = 0?
     def _uct_select(self, node: MCTSNode) -> MCTSNode:
         """Select a child of node, balancing exploration & exploitation"""
         log_N_vertex = math.log(node.N + 1e-9)
@@ -81,18 +88,17 @@ class MCTS:
         _, best_move = scored[0]
         return node.make_move(best_move)
     
-    def _move_heuristic(self, board: Board, move) -> float:
-        if hasattr(move, "x") and hasattr(move, "y"):
+    def _move_heuristic(self, board: DisjointSetBoard, move: Move | tuple[int, int]) -> float:
+        if isinstance(move, Move):
             x, y = move.x, move.y
         else:
             x, y = move
 
-        n = board.size
-        my = self.colour
-        opp = Colour.opposite(my)
+        n = board.N
+        opponent_colour = Colour.opposite(self.colour)
 
         # Compute distance to the target winning side
-        if my == Colour.RED:
+        if self.colour == Colour.RED:
             dist_goal = min(y, n-1-y)
             goal_axis = 1  # y-direction
         else:
@@ -102,14 +108,14 @@ class MCTS:
         # Computes center preference (the more center the better)
         center_score = -((x - n/2)**2 + (y - n/2)**2)
 
-        # When adjacent is own color
+        # When adjacent is same color
         adj_bonus = 0
-        for dx, dy in [(1,0),(-1,0),(0,1),(0,-1),(1,-1),(-1,1)]:
+        for dx, dy in DisjointSetBoard.NEIGHBOUR_OFFSETS:
             nx, ny = x+dx, y+dy
             if 0 <= nx < n and 0 <= ny < n:
-                if board.tiles[nx][ny].colour == my:
+                if board.get_cell(nx, ny) == self.colour:
                     adj_bonus += 3
-                if board.tiles[nx][ny].colour == opp:
+                if board.get_cell(nx, ny) == opponent_colour:
                     adj_bonus -= 1
 
         # Diagonal cells, where empty space in between is almost impossible for opponent to break
@@ -129,8 +135,8 @@ class MCTS:
                     0 <= x2 < n and 0 <= y2 < n):
                 continue
 
-            if board.tiles[x1][y1].colour == my and board.tiles[x2][y2].colour == my:
-                if goal_axis == 1: 
+            if board.get_cell(x1, y1) == self.colour and board.get_cell(x2, y2) == self.colour:
+                if goal_axis == 1:
                     if y1 != y2:
                         bridge_bonus += 6
                 else:
@@ -148,31 +154,26 @@ class MCTS:
         board = copy.deepcopy(node.board)
         current_colour = node.colour
 
-        # Checking that the board hasn't ended due to the previous colour's play
-        while not board.has_ended(Colour.opposite(current_colour)):
+        # Play until a winner is found
+        winner = board.check_winner()
+        while winner is None:
             moves = self._biased_simulation_moves(board, current_colour)
             move = choice(moves)
-            board.set_tile_colour(move[0], move[1], current_colour)
+            winner = board.place(move[0], move[1], current_colour)
             current_colour = Colour.opposite(current_colour)
 
-        return 1 if board.get_winner() == self.root.colour else -1
+        return 1 if board.check_winner() == self.root.colour else -1
     
-    def _biased_simulation_moves(self, board: Board, colour: Colour):
-        # List of legal moves
-        empty = [
-            (i, j)
-            for i in range(board.size)
-            for j in range(board.size)
-            if not board.tiles[i][j].colour
-        ]
+    def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[tuple[int, int]]:
+        possible_moves = [DisjointSetBoard.index_to_coords(move) for move in board.possible_moves]
 
         # Prefer moves adjacent to existing own color
         good = []
-        for x, y in empty:
-            for dx, dy in [(1,0),(-1,0),(0,1),(0,-1),(1,-1),(-1,1)]:
+        for x, y in possible_moves:
+            for dx, dy in board.NEIGHBOUR_OFFSETS:
                 nx, ny = x+dx, y+dy
-                if 0 <= nx < board.size and 0 <= ny < board.size:
-                    if board.tiles[nx][ny].colour == colour:
+                if 0 <= nx < board.N and 0 <= ny < board.N:
+                    if board.get_cell(nx, ny) == colour:
                         good.append((x, y))
                         break
 
@@ -180,10 +181,10 @@ class MCTS:
             return good
 
         # If no adjacent moves exist, use heuristic scoring
-        scored = [(self._move_heuristic(board, (x, y)), (x, y)) for (x, y) in empty]
+        scored = [(self._move_heuristic(board, (x, y)), (x, y)) for (x, y) in possible_moves]
         scored.sort(reverse=True)
 
-        # Keep only the best move at the top
+        # Keep a maximum of the 4 best moves
         top = [mv for _, mv in scored[:max(4, len(scored)//5)]]
         return top
     

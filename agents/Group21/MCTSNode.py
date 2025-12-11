@@ -1,7 +1,6 @@
 import copy
 
-from src.Move import Move
-from src.Board import Board
+from agents.Group21.disjoint_set_board import DisjointSetBoard
 from src.Colour import Colour
 from random import choice, random
 
@@ -10,45 +9,44 @@ class MCTSNode():
     def __init__(
         self, 
         colour: Colour,
-        board: Board,
+        board: DisjointSetBoard,
         parent: "MCTSNode | None" = None
     ):
         self.board = board
         self.colour = colour
-
         self.parent = parent
-        self.children: dict[Move, MCTSNode] = {} # Key is move, value is a Node
+
+        # Key is 1D coordinate for move, value is the Node it leads to
+        self.children: dict[int, MCTSNode] = {}
         self.Q = 0 # Total reward
         self.N = 0 # Total number of visits
 
-        # Compute the list of legal moves once in the constructor so we don't have to do this again
-        # TODO: What about swap (i.e. Move(-1, -1)?
-        self._possible_moves = [
-            Move(i, j)
-            for i in range(self.board.size)
-            for j in range(self.board.size)
-            if not self.board.tiles[i][j].colour
-        ]
-
-    @property
-    def is_terminal(self) -> bool:
-        """Returns True if the game has ended"""
-        return self.board.has_ended(Colour.opposite(self.colour))
+        self.unexplored_moves = list(self.board.possible_moves)
+        self.is_terminal = self.board.check_winner() is not None
 
     @property
     def is_fully_explored(self) -> bool:
         """Returns True if this all children of this node have been explored at least once"""
-        return len(self.children) == len(self._possible_moves)
+        return not self.unexplored_moves
 
-    @property
-    def unexplored_moves(self) -> list[Move]:
-        """Returns a list of unexplored moves (i.e those that don't have a node yet)"""
-        return [move for move in self._possible_moves if move not in self.children]
+    # TODO: Removing from middle of the list is O(n), could remove from the end instead if further optimisation needed
+    def expand(self) -> 'MCTSNode':
+        """Selects a random unexplored move and removes it from the list
+        before creating the child MCTSNode and adding to self.children.
+        """
+        move_index = choice(self.unexplored_moves)
+        self.unexplored_moves.remove(move_index)
 
-    def make_move(self, move: Move) -> "MCTSNode":
-        """Create the node for this move and store in children"""
-        board_copy = copy.deepcopy(self.board) # Next state
-        board_copy.set_tile_colour(move.x, move.y, self.colour)
-        child = MCTSNode(Colour.opposite(self.colour), board_copy, self)
-        self.children[move] = child
-        return child
+        # Convert to 2D indices
+        r, c = DisjointSetBoard.index_to_coords(move_index)
+
+        board_copy = copy.deepcopy(self.board)
+        board_copy.place(r, c, self.colour)
+
+        child_node = MCTSNode(
+            colour=Colour.opposite(self.colour),
+            board=board_copy,
+            parent=self
+        )
+        self.children[move_index] = child_node
+        return child_node
