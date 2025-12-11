@@ -1,57 +1,60 @@
 import subprocess
 import argparse
 import time
+from multiprocessing import Pool, cpu_count
 
-def extract_winner(output: str):
+
+def extract_winner(output: str) -> str | None:
     for line in output.splitlines():
         if line.startswith("winner,"):
             return line.split(",")[1]
     return None
 
+def run_single_game(args) -> tuple[str, float]:
+    player1, player1_name, player2, player2_name = args
 
-def run_games(num_games, player1, player1Name, player2, player2Name):
-    wins = 0
-    total = 0
+    start_time = time.time()
+    result = subprocess.run(
+        [
+        "python3", "Hex.py",
+        "-p1", player1,
+        "-p1Name", player1_name,
+        "-p2", player2,
+        "-p2Name", player2_name
+        ],
+        capture_output=True,
+        text=True
+    )
+
+    end_time = time.time()
+    duration = end_time - start_time
+
+    output = result.stdout + result.stderr
+    winner = extract_winner(output)
+
+    return winner, duration
+
+def run_games(num_games: int, player1: str, player1_name: str, player2: str, player2_name: str) -> tuple[int, int, list[float]]:
+    tasks = []
+    for i in range(num_games):
+        tasks.append((player1, player1_name, player2, player2_name))
+
+    num_processes = min(num_games, cpu_count())
+
+    total_wins = 0
+    total_games = 0
     game_times = []
 
-    for i in range(num_games):
-        print(f"Running game {i+1}/{num_games}...")
+    print(f'Running {num_games} games using {num_processes} parallel processes...')
+    with Pool(processes=num_processes) as pool:
+        for winner, duration in pool.imap_unordered(run_single_game, tasks):
+            if winner == player1_name:
+                total_wins += 1
+            total_games += 1
+            game_times.append(duration)
+            print(f'{total_games}/{num_games} games completed.')
 
-        start_time = time.time()
-
-        result = subprocess.run(
-            [
-                "python3", "Hex.py",
-                "-p1", player1,
-                "-p1Name", player1Name,
-                "-p2", player2,
-                "-p2Name", player2Name
-            ],
-            capture_output=True,
-            text=True
-        )
-
-        end_time = time.time()
-        duration = end_time - start_time
-        game_times.append(duration)
-
-        print(f"Game {i+1} completed in {duration:.3f} seconds")
-
-        if result.returncode != 0:
-            print("Game crashed:")
-            print(result.stderr)
-            continue
-
-        output = result.stdout + result.stderr
-        winner = extract_winner(output)
-
-        if winner == player1Name:
-            wins += 1
-
-        total += 1
-
-    return wins, total, game_times
-
+    return total_wins, total_games, game_times
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
