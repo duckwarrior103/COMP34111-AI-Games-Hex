@@ -11,7 +11,7 @@ class MCTSAgent(AgentBase):
         self.mcts = MCTS(colour)
 
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
-        # Update MCTS with opponents move, select a move using MCTS and then update again
+        # Update MCTS board state with opponent's move, select a move using MCTS and then update again
         self.mcts.update(board, opp_move)
         move = self.mcts.run()
         self.mcts.update(board, move)

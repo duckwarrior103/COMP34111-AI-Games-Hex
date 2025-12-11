@@ -1,9 +1,5 @@
-import random
-from selectors import SelectSelector
-
 from src.Board import Board
 from src.Colour import Colour
-from src.Move import Move
 
 
 # TODO: Implement swap
@@ -20,14 +16,14 @@ class DisjointSetBoard:
     NEIGHBOUR_OFFSETS = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]
 
     def __init__(self):
-        self.state = [0] * self.SIZE
+        self.state = [0] * self.SIZE # A 1D coordinate system
         self.possible_moves = set(range(self.SIZE)) # Set for O(1) removal
         self.parents = list(range(self.SIZE + 4)) # Each element is initially its own parent
         self.ranks = [0] * (self.SIZE + 4)
 
     @classmethod
     def from_existing_board(cls, board: Board) -> 'DisjointSetBoard':
-        """Converts a Board to a DisjointSetBoard"""
+        """Converts a Board to a DisjointSetBoard."""
         dsu_board = cls()
         for r in range(DisjointSetBoard.N):
             for c in range(DisjointSetBoard.N):
@@ -35,42 +31,62 @@ class DisjointSetBoard:
                     dsu_board.place(r, c, board.tiles[r][c].colour)
         return dsu_board
 
+    @staticmethod
+    def index_to_coords(index: int) -> tuple[int, int]:
+        """Converts a 1D DisjointSetBoard index to its 2D coordinate (r, c) form."""
+        return index // DisjointSetBoard.N, index % DisjointSetBoard.N
+
+    @staticmethod
+    def coords_to_index(r: int, c: int) -> int:
+        """Converts a 2D coordinate (r, c) form to a 1D DisjointSetBoard index."""
+        return (r * DisjointSetBoard.N) + c
+
     def get_cell(self, r: int, c: int) -> Colour | None:
-        pos = (r * self.N) + c
-        return Colour.RED if self.state[pos] == 1 else Colour.BLUE if self.state[pos] == 2 else None
+        """Returns the colour associated with the cell at (r,c)."""
+        index = self.coords_to_index(r, c)
+        return Colour.RED if self.state[index] == 1 else Colour.BLUE if self.state[index] == 2 else None
 
     def place(self, r: int, c: int, colour: Colour) -> Colour | None:
+        """
+        Places a colour at (r,c) and updates the disjoint sets.
+
+        :return: The winning colour (if one exists)
+        """
         colour = 1 if colour == Colour.RED else 2
 
-        # Update state
-        pos = (r * self.N) + c
-        self.state[pos] = colour
+        index = self.coords_to_index(r, c)
+        self.state[index] = colour
 
         # Check neighbours and union
         for dr, dc in self.NEIGHBOUR_OFFSETS:
             i, j = r + dr, c + dc
 
             if 0 <= i < self.N and 0 <= j < self.N:
-                neighbour_pos = (i * self.N) + j
-                if self.state[neighbour_pos] == self.state[pos]:
-                    self._union(pos, neighbour_pos)
+                neighbour_index = self.coords_to_index(i, j)
+                if self.state[neighbour_index] == self.state[index]:
+                    self._union(index, neighbour_index)
 
         # If on the edge, connect to virtual nodes
         if colour == 1:
             if r == 0:
-                self._union(pos, self.RED_TOP)
+                self._union(index, self.RED_TOP)
             elif r == self.N - 1:
-                self._union(pos, self.RED_BOTTOM)
+                self._union(index, self.RED_BOTTOM)
         else:
             if c == 0:
-                self._union(pos, self.BLUE_LEFT)
+                self._union(index, self.BLUE_LEFT)
             elif c == self.N - 1:
-                self._union(pos, self.BLUE_RIGHT)
+                self._union(index, self.BLUE_RIGHT)
 
-        self.possible_moves.remove(pos)
+        self.possible_moves.remove(index)
         return self.check_winner()
 
     def check_winner(self) -> Colour | None:
+        """
+        Check if a winner exists efficiently by checking disjoint sets.
+
+        :return: The winning Colour or None if no winner.
+        """
         if self._find(self.RED_TOP) == self._find(self.RED_BOTTOM):
             return Colour.RED
         elif self._find(self.BLUE_LEFT) == self._find(self.BLUE_RIGHT):
@@ -101,7 +117,3 @@ class DisjointSetBoard:
             self.ranks[x_root] +=1
         
         return True
-
-    @staticmethod
-    def index_to_coords(index: int) -> tuple[int, int]:
-        return index // DisjointSetBoard.N, index % DisjointSetBoard.N
