@@ -16,4 +16,3 @@ class MCTSAgent(AgentBase):
         move = self.mcts.run()
         self.mcts.update(board, move)
         return move
-

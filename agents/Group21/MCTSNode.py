@@ -1,11 +1,12 @@
 import copy
+from collections import defaultdict
 
 from agents.Group21.disjoint_set_board import DisjointSetBoard
 from src.Colour import Colour
 from random import randrange
 
 
-class MCTSNode():
+class MCTSNode:
     def __init__(
         self, 
         colour: Colour,
@@ -19,6 +20,7 @@ class MCTSNode():
         self.children: dict[tuple[int, int], MCTSNode] = {} # Key is 1D coordinate for move, value is the Node it leads to
         self.Q = 0 # Total reward
         self.N = 0 # Total number of visits
+        self.RAVE: dict[tuple[int, int], tuple[int, int]] = defaultdict(tuple, tuple)
 
         self.unexplored_moves = list(self.board.possible_moves)
         self.is_terminal = self.board.check_winner() is not None
@@ -28,6 +30,7 @@ class MCTSNode():
         """Returns True if this all children of this node have been explored at least once"""
         return not self.unexplored_moves
 
+    # TODO: Currently not using Gan's heuristic
     def expand(self) -> 'MCTSNode':
         """
         Selects a random unexplored move, removing it from the list
