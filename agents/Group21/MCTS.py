@@ -16,7 +16,7 @@ class MCTS:
     EXPLORATION_WEIGHT = 1.0
     RAVE_K = 100
 
-    SWAP_MOVE = (-1, -1)
+    SWAP_MOVE = -12 # (-1, -1) maps to -12
 
     BRIDGE_PATTERNS = [
         (1, 0, 0, 1),
@@ -27,10 +27,10 @@ class MCTS:
 
     def __init__(self, colour: Colour):
         self.colour = colour
-        self.root: MCTSNode | None = None
+        self._root: MCTSNode | None = None
 
     def run(self, time_limit: float = 0.5, iterations: int = 2000) -> Move:
-        assert self.root is not None, "Call update(board, opp_move) before run() to set root."
+        assert self._root is not None, "Call update(board, opp_move) before run() to set root."
 
         end_time = time.time() + time_limit
         iters_left = iterations
@@ -42,38 +42,38 @@ class MCTS:
             self._backpropagate(child, reward, moves)
             iters_left -= 1
 
-        if not self.root.children:
-            r, c = choice(self.root.unexplored_moves)
+        if not self._root.children:
+            move = choice(self._root.unexplored_moves)
+            r, c = divmod(move, DisjointSetBoard.N)
             return Move(r, c)
 
         # Pick the child with the highest visit count
-        best_move, best_child = max(self.root.children.items(), key=lambda c: (c[1].N, c[1].Q))
-        print(f'Best move was {best_move} with Q={best_child.Q}, N={best_child.N}')
+        best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].Q))
 
         # Update to new state
-        self.root = best_child
-        self.root.parent = None
+        self._root = best_child
+        self._root.parent = None
 
-        r, c = best_move
+        r, c = divmod(best_move, DisjointSetBoard.N)
         return Move(r, c)
 
     def update(self, board: Board, opp_move: Move | None) -> None:
         """Given a move, find the corresponding child of the root and set that as the new root."""
-        move = (opp_move.x, opp_move.y) if opp_move is not None else None
+        move = (opp_move.x * DisjointSetBoard.N + opp_move.y) if opp_move is not None else None
 
         # Reuse the tree if possible
-        if self.root is not None and move is not None and move in self.root.children:
-            self.root = self.root.children[move]
-            self.root.parent = None
+        if self._root is not None and move is not None and move in self._root.children:
+            self._root = self._root.children[move]
+            self._root.parent = None
         # Otherwise, create a completely new root node
         else:
-            if (move == MCTS.SWAP_MOVE):
+            if opp_move == MCTS.SWAP_MOVE:
                 self.colour = Colour.opposite(self.colour)
-            self.root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
+            self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
 
     def _select(self) -> MCTSNode:
         """Find an unexplored descendent of the root node."""
-        node = self.root
+        node = self._root
         while not node.is_terminal and node.is_fully_explored:
             node = self._uct_select(node)
         return node
@@ -81,7 +81,7 @@ class MCTS:
     # TODO: Which formula for alpha / beta should we use?
     def _uct_select(self, parent: MCTSNode) -> MCTSNode:
         """Select a child of node, balancing exploration & exploitation."""
-        def uct_rave(move: tuple[int, int], child: MCTSNode) -> float:
+        def uct_rave(move: int, child: MCTSNode) -> float:
             exploit = child.Q / (child.N + 1e-9)
             explore = MCTS.EXPLORATION_WEIGHT * math.sqrt(math.log(parent.N + 1e-9) / (child.N + 1e-9))
 
@@ -94,7 +94,7 @@ class MCTS:
 
         return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
 
-    def _simulate(self, node: MCTSNode) -> tuple[int, list[tuple[int, int]]]:
+    def _simulate(self, node: MCTSNode) -> tuple[int, list[int]]:
         """Play through the entire game until a winner is found."""
         board = copy.deepcopy(node.board)
         current_colour = node.colour
@@ -106,39 +106,36 @@ class MCTS:
             moves = self._biased_simulation_moves(board, current_colour)
             move = choice(moves)
             simulated_moves.append(move)
-            winner = board.place(move[0], move[1], current_colour)
+            winner = board.place(move, current_colour)
             current_colour = Colour.opposite(current_colour)
 
-        return 1 if board.check_winner() == self.root.colour else -1, simulated_moves
+        return 1 if board.check_winner() == self._root.colour else -1, simulated_moves
 
-    def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[tuple[int, int]]:
+    def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[int]:
         n = board.N
         possible_moves = board.possible_moves
 
         # Prefer moves adjacent to existing own color
         good = []
-        for x, y in possible_moves:
-            for dx, dy in board.NEIGHBOUR_OFFSETS:
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < n and 0 <= ny < n:
-                    if board.get_cell(nx, ny) == colour:
-                        good.append((x, y))
-                        break
+        for move in possible_moves:
+            for neighbour in DisjointSetBoard.NEIGHBOURS[move]:
+                if (board.get_cell(neighbour)) == colour:
+                    good.append(move)
+                    break
 
         if good:
             return good
 
         # If no adjacent moves exist, use heuristic scoring
-        scored = [(self._move_heuristic(board, mv, colour), mv) for mv in possible_moves]
+        scored = [(self._move_heuristic(board, move, colour), move) for move in possible_moves]
         scored.sort(reverse=True)
 
         # Keep a maximum of the 4 best moves
-        return [mv for _, mv in scored[:max(4, len(scored)//5)]]
+        return [move for _, move in scored[:max(4, len(scored)//5)]]
 
-    def _move_heuristic(self, board: DisjointSetBoard, move: tuple[int, int], colour: Colour) -> float:
-        x, y = move
+    def _move_heuristic(self, board: DisjointSetBoard, move: int, colour: Colour) -> float:
+        x, y = divmod(move, board.N)
         n = board.N
-
         opponent_colour = Colour.opposite(self.colour)
 
         # Compute distance to the target winning side
@@ -154,31 +151,23 @@ class MCTS:
 
         # When adjacent is same color
         adj_bonus = 0
-        for dx, dy in DisjointSetBoard.NEIGHBOUR_OFFSETS:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < n and 0 <= ny < n:
-                if board.get_cell(nx, ny) == colour:
-                    adj_bonus += 3
-                if board.get_cell(nx, ny) == opponent_colour:
-                    adj_bonus -= 1
+        for neighbour in DisjointSetBoard.NEIGHBOURS[move]:
+            if board.get_cell(neighbour) == colour:
+                adj_bonus += 3
+            if board.get_cell(neighbour) == opponent_colour:
+                adj_bonus -= 1
 
         # Diagonal cells, where empty space in between is almost impossible for opponent to break
         bridge_bonus = 0
-        for dx, dy, ex, ey in self.BRIDGE_PATTERNS:
-            x1, y1 = x + dx, y + dy
-            x2, y2 = x + ex, y + ey
+        for move1, move2 in DisjointSetBoard.BRIDGE_PAIRS[move]:
+            r1, c1 = divmod(move1, board.N)
+            r2, c2 = divmod(move2, board.N)
 
-            if not (0 <= x1 < n and 0 <= y1 < n and
-                    0 <= x2 < n and 0 <= y2 < n):
-                continue
-
-            if board.get_cell(x1, y1) == colour and board.get_cell(x2, y2) == colour:
-                if goal_axis == 1:
-                    if y1 != y2:
-                        bridge_bonus += 6
-                else:
-                    if x1 != x2:
-                        bridge_bonus += 6
+            if board.get_cell(move1) == colour and board.get_cell(move2) == colour:
+                if goal_axis == 1 and r1 != r2:
+                    bridge_bonus += 6
+                if goal_axis == 0 and c1 != c2:
+                    bridge_bonus += 6
 
         return (
             -2 * dist_goal +
@@ -188,7 +177,7 @@ class MCTS:
         )
 
     @staticmethod
-    def _backpropagate(node: MCTSNode, reward: float, moves: list[tuple[int, int]]) -> None:
+    def _backpropagate(node: MCTSNode, reward: float, moves: list[int]) -> None:
         """Backpropagates rewards and visits until the root node is reached"""
         start_colour = node.colour
         current_node = node

@@ -53,7 +53,7 @@ def run_games(num_games: int, player1: str, player1_name: str, player2: str, pla
                 total_wins += 1
             total_games += 1
             game_times.append(duration)
-            print(f'[{total_games}/{num_games}] Current WR: {total_wins / total_games * 100:.0f}%')
+            print(f'[{total_games}/{num_games}] Current WR: {total_wins / total_games * 100:.1f}%')
 
     return total_wins, total_games, game_times
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     print("\n=== RESULTS ===")
     print(f"Total Games: {total}")
     print(f"Wins for {args.player1}: {wins}")
-    print(f"Win Rate: {wins/total*100:.0f}%")
+    print(f"Win Rate: {wins/total*100:.1f}%")
 
     print("\n=== TIME STATISTICS ===")
     print(f"Average Game Time: {sum(game_times)/len(game_times):.3f} s")

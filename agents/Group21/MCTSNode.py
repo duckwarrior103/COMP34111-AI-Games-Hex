@@ -17,10 +17,10 @@ class MCTSNode:
         self.colour = colour
         self.parent = parent
 
-        self.children: dict[tuple[int, int], MCTSNode] = {} # Move -> MCTSNode
+        self.children: dict[int, MCTSNode] = {} # Move -> MCTSNode
         self.Q = 0 # Total reward
         self.N = 0 # Total number of visits
-        self.RAVE: dict[tuple[int, int], list[int]] = defaultdict(lambda: [0, 0]) # Move -> [reward, total_visits]
+        self.RAVE: dict[int, list[int]] = defaultdict(lambda: [0, 0]) # Move -> [reward, total_visits]
 
         self.unexplored_moves = list(self.board.possible_moves)
         self.is_terminal = self.board.check_winner() is not None
@@ -37,7 +37,7 @@ class MCTSNode:
         before creating the child MCTSNode and adding to self.children.
         """
         random_index = randrange(len(self.unexplored_moves))
-        r, c = self.unexplored_moves[random_index]
+        move = self.unexplored_moves[random_index]
 
         # Swap with last element and pop for O(1) removal
         # Not sure how much difference this actually makes
@@ -47,12 +47,12 @@ class MCTSNode:
         self.unexplored_moves.pop()
 
         board_copy = copy.deepcopy(self.board)
-        board_copy.place(r, c, self.colour)
+        board_copy.place(move, self.colour)
 
         child_node = MCTSNode(
             colour=Colour.opposite(self.colour),
             board=board_copy,
             parent=self
         )
-        self.children[(r, c)] = child_node
+        self.children[move] = child_node
         return child_node

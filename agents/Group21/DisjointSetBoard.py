@@ -3,6 +3,8 @@ from src.Colour import Colour
 
 
 class DisjointSetBoard:
+
+    # Board size
     N = 11
     SIZE = N * N
 
@@ -12,19 +14,21 @@ class DisjointSetBoard:
     BLUE_LEFT = SIZE + 2
     BLUE_RIGHT = SIZE + 3
 
+    NEIGHBOURS: list[list[int]] | None = None
     NEIGHBOUR_OFFSETS = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]
+    BRIDGE_PAIRS: list[list[tuple[int, int]]] | None = None
+    BRIDGE_PATTERNS = [
+        (1, 0, 0, 1),
+        (0, 1, 1, 0),
+        (-1, 0, 0, -1),
+        (0, -1, -1, 0),
+    ]
 
     def __init__(self):
-        self.state = [0] * self.SIZE # A 1D coordinate system
-        self.parents = list(range(self.SIZE + 4)) # Each element is initially its own parent
-        self.ranks = [0] * (self.SIZE + 4)
-
-        # Using a set for O(1) removal
-        self.possible_moves = set(
-            (r, c)
-            for r in range(self.N)
-            for c in range(self.N)
-        )
+        self._state = [0] * self.SIZE # A 1D coordinate system
+        self._parents = list(range(self.SIZE + 4)) # Each element is initially its own parent
+        self._ranks = [0] * (self.SIZE + 4)
+        self.possible_moves = set(list(range(self.SIZE))) # Using a set for O(1) removal
 
     @classmethod
     def from_existing_board(cls, board: Board) -> 'DisjointSetBoard':
@@ -33,45 +37,26 @@ class DisjointSetBoard:
         for r in range(DisjointSetBoard.N):
             for c in range(DisjointSetBoard.N):
                 if board.tiles[r][c].colour is not None:
-                    dsu_board.place(r, c, board.tiles[r][c].colour)
+                    index = r * DisjointSetBoard.N + c
+                    dsu_board.place(index, board.tiles[r][c].colour)
         return dsu_board
 
-    @staticmethod
-    def index_to_coords(index: int) -> tuple[int, int]:
-        """Converts a 1D DisjointSetBoard index to its 2D coordinate (r, c) form."""
-        return divmod(index, index)
+    def get_cell(self, index: int) -> Colour | None:
+        """Returns the colour associated with the given index."""
+        return Colour.RED if self._state[index] == 1 else Colour.BLUE if self._state[index] == 2 else None
 
-    @staticmethod
-    def coords_to_index(r: int, c: int) -> int:
-        """Converts a 2D coordinate (r, c) form to a 1D DisjointSetBoard index."""
-        return (r * DisjointSetBoard.N) + c
-
-    def get_cell(self, r: int, c: int) -> Colour | None:
-        """Returns the colour associated with the cell at (r,c)."""
-        index = self.coords_to_index(r, c)
-        return Colour.RED if self.state[index] == 1 else Colour.BLUE if self.state[index] == 2 else None
-
-    def place(self, r: int, c: int, colour: Colour) -> Colour | None:
-        """
-        Places a colour at (r,c) and updates the disjoint sets.
-
-        :return: The winning colour (if one exists)
-        """
+    def place(self, index: int, colour: Colour) -> Colour | None:
+        """Places a colour at the index and updates the disjoint sets."""
         colour = 1 if colour == Colour.RED else 2
-
-        index = self.coords_to_index(r, c)
-        self.state[index] = colour
+        self._state[index] = colour
 
         # Check neighbours and union
-        for dr, dc in self.NEIGHBOUR_OFFSETS:
-            i, j = r + dr, c + dc
-
-            if 0 <= i < self.N and 0 <= j < self.N:
-                neighbour_index = self.coords_to_index(i, j)
-                if self.state[neighbour_index] == self.state[index]:
-                    self._union(index, neighbour_index)
+        for neighbour_index in self.NEIGHBOURS[index]:
+            if self._state[neighbour_index] == self._state[index]:
+                self._union(index, neighbour_index)
 
         # If on the edge, connect to virtual nodes
+        r, c = divmod(index, self.N)
         if colour == 1:
             if r == 0:
                 self._union(index, self.RED_TOP)
@@ -83,7 +68,7 @@ class DisjointSetBoard:
             elif c == self.N - 1:
                 self._union(index, self.BLUE_RIGHT)
 
-        self.possible_moves.remove((r, c))
+        self.possible_moves.remove(index)
         return self.check_winner()
 
     def check_winner(self) -> Colour | None:
@@ -101,9 +86,9 @@ class DisjointSetBoard:
 
     def _find(self, x: int) -> int:
         # Path compression
-        if self.parents[x] != x:
-            self.parents[x] = self._find(self.parents[x])
-        return self.parents[x]
+        if self._parents[x] != x:
+            self._parents[x] = self._find(self._parents[x])
+        return self._parents[x]
     
     def _union(self, x: int, y: int) -> bool:
         x_root = self._find(x)
@@ -113,12 +98,43 @@ class DisjointSetBoard:
             return False
         
         # Union by rank
-        if self.ranks[x_root] < self.ranks[y_root]:
-            self.parents[x_root] = y_root
-        elif self.ranks[x_root] > self.ranks[y_root]:
-            self.parents[y_root] = x_root
+        if self._ranks[x_root] < self._ranks[y_root]:
+            self._parents[x_root] = y_root
+        elif self._ranks[x_root] > self._ranks[y_root]:
+            self._parents[y_root] = x_root
         else:
-            self.parents[y_root] = x_root
-            self.ranks[x_root] +=1
+            self._parents[y_root] = x_root
+            self._ranks[x_root] +=1
         
         return True
+
+
+# Precompute neighbours
+DisjointSetBoard.NEIGHBOURS = [
+    [
+        r * DisjointSetBoard.N + c
+        for dr, dc in DisjointSetBoard.NEIGHBOUR_OFFSETS
+        for (r, c) in [(index // DisjointSetBoard.N + dr, index % DisjointSetBoard.N + dc)]
+        if 0 <= r < DisjointSetBoard.N and 0 <= c < DisjointSetBoard.N
+    ]
+    for index in range(DisjointSetBoard.SIZE)
+]
+
+# Precompute bridge pairs
+DisjointSetBoard.BRIDGE_PAIRS = [
+    [
+        ((r1 * DisjointSetBoard.N + c1), (r2 * DisjointSetBoard.N + c2))
+        for (dr1, dc1, dr2, dc2) in DisjointSetBoard.BRIDGE_PATTERNS
+        for (r1, c1, r2, c2) in [
+            (
+                index // DisjointSetBoard.N + dr1,
+                index % DisjointSetBoard.N + dc1,
+                index // DisjointSetBoard.N + dr2,
+                index % DisjointSetBoard.N + dc2
+            )
+        ]
+        if 0 <= r1 < DisjointSetBoard.N and 0 <= c1 < DisjointSetBoard.N and
+           0 <= r2 < DisjointSetBoard.N and 0 <= c2 < DisjointSetBoard.N
+    ]
+    for index in range(DisjointSetBoard.SIZE)
+]
