@@ -1,7 +1,7 @@
 import copy
 from collections import defaultdict
 
-from agents.Group21.disjoint_set_board import DisjointSetBoard
+from agents.Group21.DisjointSetBoard import DisjointSetBoard
 from src.Colour import Colour
 from random import randrange
 
@@ -17,10 +17,10 @@ class MCTSNode:
         self.colour = colour
         self.parent = parent
 
-        self.children: dict[tuple[int, int], MCTSNode] = {} # Key is 1D coordinate for move, value is the Node it leads to
+        self.children: dict[tuple[int, int], MCTSNode] = {} # Move -> MCTSNode
         self.Q = 0 # Total reward
         self.N = 0 # Total number of visits
-        self.RAVE: dict[tuple[int, int], tuple[int, int]] = defaultdict(tuple, tuple)
+        self.RAVE: dict[tuple[int, int], list[int]] = defaultdict(lambda: [0, 0]) # Move -> [reward, total_visits]
 
         self.unexplored_moves = list(self.board.possible_moves)
         self.is_terminal = self.board.check_winner() is not None
@@ -46,7 +46,6 @@ class MCTSNode:
             self.unexplored_moves[random_index] = self.unexplored_moves[last_index]
         self.unexplored_moves.pop()
 
-        # Convert to 2D indices
         board_copy = copy.deepcopy(self.board)
         board_copy.place(r, c, self.colour)
 

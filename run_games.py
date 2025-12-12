@@ -5,7 +5,8 @@ from multiprocessing import Pool, cpu_count
 
 
 def extract_winner(output: str) -> str | None:
-    for line in output.splitlines():
+    lines = output.splitlines()
+    for line in reversed(lines):
         if line.startswith("winner,"):
             return line.split(",")[1]
     return None
@@ -52,7 +53,7 @@ def run_games(num_games: int, player1: str, player1_name: str, player2: str, pla
                 total_wins += 1
             total_games += 1
             game_times.append(duration)
-            print(f'{total_games}/{num_games} games completed.')
+            print(f'[{total_games}/{num_games}] Current WR: {total_wins / total_games * 100:.3f}%')
 
     return total_wins, total_games, game_times
 
@@ -66,7 +67,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    start_time = time.time()
     wins, total, game_times = run_games(args.num_games, args.player1, args.player1Name, args.player2, args.player2Name)
+    time_taken = time.time() - start_time
 
     print("\n=== RESULTS ===")
     print(f"Total Games: {total}")
@@ -77,3 +80,4 @@ if __name__ == "__main__":
     print(f"Average Game Time: {sum(game_times)/len(game_times):.3f} s")
     print(f"Fastest Game: {min(game_times):.3f} s")
     print(f"Slowest Game: {max(game_times):.3f} s")
+    print(f"Total Time Taken: {time_taken:.3f} s")
