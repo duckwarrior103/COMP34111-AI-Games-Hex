@@ -18,13 +18,6 @@ class MCTS:
 
     SWAP_MOVE = -12 # (-1, -1) maps to -12
 
-    BRIDGE_PATTERNS = [
-        (1, 0, 0, 1),
-        (0, 1, 1, 0),
-        (-1, 0, 0, -1),
-        (0, -1, -1, 0)
-    ]
-
     def __init__(self, colour: Colour):
         self.colour = colour
         self._root: MCTSNode | None = None
@@ -85,9 +78,9 @@ class MCTS:
             exploit = child.Q / (child.N + 1e-9)
             explore = MCTS.EXPLORATION_WEIGHT * math.sqrt(math.log(parent.N + 1e-9) / (child.N + 1e-9))
 
-            q_rave, n_rave = parent.RAVE[move]
-            if n_rave > 0:
-                amaf = q_rave / n_rave
+            rave_Q, rave_N = parent.rave_Q[move], parent.rave_N[move]
+            if rave_N > 0:
+                amaf = rave_Q / rave_N
                 alpha = max(0.0, (MCTS.RAVE_K - child.N) / MCTS.RAVE_K)
                 return alpha * amaf + (1 - alpha) * exploit + explore
             return exploit + explore # Standard UCT
@@ -112,7 +105,6 @@ class MCTS:
         return 1 if board.check_winner() == self._root.colour else -1, simulated_moves
 
     def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[int]:
-        n = board.N
         possible_moves = board.possible_moves
 
         # Prefer moves adjacent to existing own color
@@ -192,8 +184,8 @@ class MCTS:
             # Odd indices were made by the other node
             offset = 0 if current_node.colour == start_colour else 1
             for i in range(offset, len(moves), 2):
-                current_node.RAVE[moves[i]][0] += current_reward
-                current_node.RAVE[moves[i]][1] += 1
+                current_node.rave_Q[moves[i]] += current_reward
+                current_node.rave_N[moves[i]] += 1
 
             current_node = current_node.parent
             current_reward = -current_reward # Flip reward as 0-sum

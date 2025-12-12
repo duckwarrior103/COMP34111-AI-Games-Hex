@@ -18,9 +18,10 @@ class MCTSNode:
         self.parent = parent
 
         self.children: dict[int, MCTSNode] = {} # Move -> MCTSNode
-        self.Q = 0 # Total reward
+        self.Q = 0.0 # Total reward
         self.N = 0 # Total number of visits
-        self.RAVE: dict[int, list[int]] = defaultdict(lambda: [0, 0]) # Move -> [reward, total_visits]
+        self.rave_Q = [0.0] * DisjointSetBoard.SIZE
+        self.rave_N = [0] * DisjointSetBoard.SIZE
 
         self.unexplored_moves = list(self.board.possible_moves)
         self.is_terminal = self.board.check_winner() is not None

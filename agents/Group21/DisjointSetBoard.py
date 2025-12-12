@@ -14,15 +14,17 @@ class DisjointSetBoard:
     BLUE_LEFT = SIZE + 2
     BLUE_RIGHT = SIZE + 3
 
-    NEIGHBOURS: list[list[int]] | None = None
     NEIGHBOUR_OFFSETS = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]
-    BRIDGE_PAIRS: list[list[tuple[int, int]]] | None = None
     BRIDGE_PATTERNS = [
         (1, 0, 0, 1),
         (0, 1, 1, 0),
         (-1, 0, 0, -1),
         (0, -1, -1, 0),
     ]
+
+    # Initialise these after class declaration
+    NEIGHBOURS: list[list[int]] | None = None
+    BRIDGE_PAIRS: list[list[tuple[int, int]]] | None = None
 
     def __init__(self):
         self._state = [0] * self.SIZE # A 1D coordinate system
