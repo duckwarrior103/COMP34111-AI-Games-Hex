@@ -16,6 +16,8 @@ class MCTS:
     EXPLORATION_WEIGHT = 1.0
     RAVE_K = 100
 
+    SWAP_MOVE = (-1, -1)
+
     BRIDGE_PATTERNS = [
         (1, 0, 0, 1),
         (0, 1, 1, 0),
@@ -65,6 +67,8 @@ class MCTS:
             self.root.parent = None
         # Otherwise, create a completely new root node
         else:
+            if (move == MCTS.SWAP_MOVE):
+                self.colour = Colour.opposite(self.colour)
             self.root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
 
     def _select(self) -> MCTSNode:
@@ -125,23 +129,20 @@ class MCTS:
             return good
 
         # If no adjacent moves exist, use heuristic scoring
-        scored = [(self._move_heuristic(board, mv), mv) for mv in possible_moves]
+        scored = [(self._move_heuristic(board, mv, colour), mv) for mv in possible_moves]
         scored.sort(reverse=True)
 
         # Keep a maximum of the 4 best moves
         return [mv for _, mv in scored[:max(4, len(scored)//5)]]
 
-    def _move_heuristic(self, board: DisjointSetBoard, move: Move | tuple[int, int]) -> float:
-        if isinstance(move, Move):
-            x, y = move.x, move.y
-        else:
-            x, y = move
-
+    def _move_heuristic(self, board: DisjointSetBoard, move: tuple[int, int], colour: Colour) -> float:
+        x, y = move
         n = board.N
+
         opponent_colour = Colour.opposite(self.colour)
 
         # Compute distance to the target winning side
-        if self.colour == Colour.RED:
+        if colour == Colour.RED:
             dist_goal = min(y, n - 1 - y)
             goal_axis = 1  # y-direction
         else:
@@ -156,7 +157,7 @@ class MCTS:
         for dx, dy in DisjointSetBoard.NEIGHBOUR_OFFSETS:
             nx, ny = x + dx, y + dy
             if 0 <= nx < n and 0 <= ny < n:
-                if board.get_cell(nx, ny) == self.colour:
+                if board.get_cell(nx, ny) == colour:
                     adj_bonus += 3
                 if board.get_cell(nx, ny) == opponent_colour:
                     adj_bonus -= 1
@@ -171,7 +172,7 @@ class MCTS:
                     0 <= x2 < n and 0 <= y2 < n):
                 continue
 
-            if board.get_cell(x1, y1) == self.colour and board.get_cell(x2, y2) == self.colour:
+            if board.get_cell(x1, y1) == colour and board.get_cell(x2, y2) == colour:
                 if goal_axis == 1:
                     if y1 != y2:
                         bridge_bonus += 6

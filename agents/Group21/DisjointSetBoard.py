@@ -2,7 +2,6 @@ from src.Board import Board
 from src.Colour import Colour
 
 
-# TODO: Implement swap
 class DisjointSetBoard:
     N = 11
     SIZE = N * N
