@@ -47,7 +47,7 @@ class DisjointSetBoard:
         """Returns the colour associated with the given index."""
         return Colour.RED if self._state[index] == 1 else Colour.BLUE if self._state[index] == 2 else None
 
-    def place(self, index: int, colour: Colour) -> Colour | None:
+    def place(self, index: int, colour: Colour) -> None:
         """Places a colour at the index and updates the disjoint sets."""
         colour = 1 if colour == Colour.RED else 2
         self._state[index] = colour
@@ -71,7 +71,6 @@ class DisjointSetBoard:
                 self._union(index, self.BLUE_RIGHT)
 
         self.possible_moves.remove(index)
-        return self.check_winner()
 
     def check_winner(self) -> Colour | None:
         """

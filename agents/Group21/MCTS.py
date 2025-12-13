@@ -1,7 +1,7 @@
 import copy
 import math
 import time
-from random import choice
+from random import choice, shuffle
 
 from agents.Group21.DisjointSetBoard import DisjointSetBoard
 from agents.Group21.MCTSNode import MCTSNode
@@ -87,21 +87,18 @@ class MCTS:
         return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
 
     def _simulate(self, node: MCTSNode) -> tuple[int, list[int]]:
-        """Play through the entire game until a winner is found."""
+        """Do full board simulation."""
         board = copy.deepcopy(node.board)
         current_colour = node.colour
 
-        # Play until a winner is found
-        simulated_moves = []
-        winner = board.check_winner()
-        while winner is None:
-            moves = self._biased_simulation_moves(board, current_colour)
-            move = choice(moves)
-            simulated_moves.append(move)
-            winner = board.place(move, current_colour)
+        # Play randomly until the board is full
+        moves_to_play = list(board.possible_moves)
+        shuffle(moves_to_play)
+        for move in moves_to_play:
+            board.place(move, current_colour)
             current_colour = Colour.opposite(current_colour)
 
-        return 1 if board.check_winner() == self._root.colour else -1, simulated_moves
+        return 1 if board.check_winner() == self._root.colour else 0, moves_to_play
 
     def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[int]:
         possible_moves = board.possible_moves

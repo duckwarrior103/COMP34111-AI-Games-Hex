@@ -1,8 +1,55 @@
+import json
+import math
+import os
 import subprocess
 import argparse
 import time
 from multiprocessing import Pool, cpu_count
 
+RESET = "\033[0m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+UP = "\u2191"
+DOWN = "\u2193"
+
+GAME_STATS_PATH  = 'game_stats.json'
+
+def load_stats():
+    if os.path.exists(GAME_STATS_PATH):
+        with open(GAME_STATS_PATH, 'r') as file:
+            return json.load(file)
+    else:
+        return {}
+
+def save_stats(stats: dict):
+    with open(GAME_STATS_PATH, 'w') as file:
+        json.dump(stats, file, indent=4)
+
+def update_pair_stats(p1: str, p2: str, games_played: int, win_rate: float, avg_game_time: float):
+    key = f'{p1}-{p2}'
+    stats = load_stats()
+    if key not in stats:
+        stats[key] = {
+            'games': 0,
+            'avg_win_rate': 0.0,
+            'avg_game_time': 0.0
+        }
+
+    pair_stats = stats[key]
+    old_games = pair_stats['games']
+    pair_stats['games'] += games_played
+    pair_stats['avg_win_rate'] = (pair_stats['avg_win_rate'] * old_games + win_rate * games_played) / pair_stats['games']
+    pair_stats['avg_game_time'] = (pair_stats['avg_game_time'] * old_games + avg_game_time * games_played) / pair_stats['games']
+
+    save_stats(stats)
+
+def get_average_statistics(p1: str, p2: str) -> tuple[float, float] | None:
+    key = f'{p1}-{p2}'
+    stats = load_stats()
+    if key not in stats:
+        return None
+
+    return stats[key]['avg_win_rate'], stats[key]['avg_game_time']
 
 def extract_winner(output: str) -> str | None:
     lines = output.splitlines()
@@ -61,24 +108,35 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--num_games", type=int, default=10)
     parser.add_argument("-p1", "--player1", type=str, default="agents.Group21.MCTSAgent MCTSAgent")
-    parser.add_argument("-p1Name", "--player1Name", type=str, default="Current MCTSAgent")
     parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.old.MCTSAgentFri MCTSAgentFri")
     # parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.RandomAgent RandomAgent")
-    parser.add_argument("-p2Name", "--player2Name", type=str, default="Old MCTSAgent")
 
     args = parser.parse_args()
 
+    # Extract the class name and use as player names
+    p1_name = args.player1.split(" ")[1]
+    p2_name = args.player2.split(" ")[1]
+
     start_time = time.time()
-    wins, total, game_times = run_games(args.num_games, args.player1, args.player1Name, args.player2, args.player2Name)
+    wins, total, game_times = run_games(args.num_games, args.player1, p1_name, args.player2, p2_name)
     time_taken = time.time() - start_time
+
+    # TODO: Fix this ugly ass code if we have time
+    win_rate = wins / total
+    avg_game_time = sum(game_times) / len(game_times)
+    old_avg_wr, old_avg_game_time = get_average_statistics(p1_name, p2_name) or (win_rate, avg_game_time)
+    diff_wr = abs(old_avg_wr - win_rate)
+    diff_game_time = abs(old_avg_game_time - avg_game_time)
 
     print("\n=== RESULTS ===")
     print(f"Total Games: {total}")
-    print(f"Wins for {args.player1Name} against {args.player2Name}: {wins}")
-    print(f"Win Rate: {wins/total*100:.1f}%")
+    print(f"Wins for {p1_name} against {p2_name}: {wins}")
+    print(f"Win Rate: {win_rate*100:.1f}% {GREEN if win_rate >= old_avg_wr else RED}{UP if win_rate >= old_avg_wr else DOWN} {diff_wr*100:.1f}%{RESET}")
 
     print("\n=== TIME STATISTICS ===")
-    print(f"Average Game Time: {sum(game_times)/len(game_times):.3f} s")
-    print(f"Fastest Game: {min(game_times):.3f} s")
-    print(f"Slowest Game: {max(game_times):.3f} s")
-    print(f"Total Time Taken: {time_taken:.3f} s")
+    print(f"Average Game Time: {avg_game_time:.1f} s {GREEN if avg_game_time <= old_avg_game_time else RED}{DOWN if avg_game_time <= old_avg_game_time else UP} {diff_game_time:.1f}s{RESET}")
+    print(f"Fastest Game: {min(game_times):.1f}s")
+    print(f"Slowest Game: {max(game_times):.1f}s")
+    print(f"Total Time Taken: {time_taken:.1f}s")
+
+    update_pair_stats(p1_name, p2_name, total, win_rate, avg_game_time)
