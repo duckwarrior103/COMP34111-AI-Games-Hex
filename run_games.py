@@ -61,9 +61,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--num_games", type=int, default=10)
     parser.add_argument("-p1", "--player1", type=str, default="agents.Group21.MCTSAgent MCTSAgent")
-    parser.add_argument("-p1Name", "--player1Name", type=str, default="My Agent")
-    parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.RandomAgent RandomAgent")
-    parser.add_argument("-p2Name", "--player2Name", type=str, default="Random Agent")
+    parser.add_argument("-p1Name", "--player1Name", type=str, default="Current MCTSAgent")
+    parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.old.MCTSAgentFri MCTSAgentFri")
+    # parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.RandomAgent RandomAgent")
+    parser.add_argument("-p2Name", "--player2Name", type=str, default="Old MCTSAgent")
 
     args = parser.parse_args()
 
@@ -73,7 +74,7 @@ if __name__ == "__main__":
 
     print("\n=== RESULTS ===")
     print(f"Total Games: {total}")
-    print(f"Wins for {args.player1}: {wins}")
+    print(f"Wins for {args.player1Name} against {args.player2Name}: {wins}")
     print(f"Win Rate: {wins/total*100:.1f}%")
 
     print("\n=== TIME STATISTICS ===")

@@ -3,14 +3,14 @@ import math
 import time
 from random import choice
 
-from agents.Group21.DisjointSetBoard import DisjointSetBoard
-from agents.Group21.MCTSNode import MCTSNode
+from agents.Group21.old.DisjointSetBoardFri import DisjointSetBoardFri
+from agents.Group21.old.MCTSNodeFri import MCTSNodeFri
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
 
 
-class MCTS:
+class MCTSFri:
 
     # Hyperparameters
     EXPLORATION_WEIGHT = 1.0
@@ -20,7 +20,7 @@ class MCTS:
 
     def __init__(self, colour: Colour):
         self.colour = colour
-        self._root: MCTSNode | None = None
+        self._root: MCTSNodeFri | None = None
 
     def run(self, time_limit: float = 0.5, iterations: int = 2000) -> Move:
         assert self._root is not None, "Call update(board, opp_move) before run() to set root."
@@ -37,7 +37,7 @@ class MCTS:
 
         if not self._root.children:
             move = choice(self._root.unexplored_moves)
-            r, c = divmod(move, DisjointSetBoard.N)
+            r, c = divmod(move, DisjointSetBoardFri.N)
             return Move(r, c)
 
         # Pick the child with the highest visit count
@@ -47,12 +47,12 @@ class MCTS:
         self._root = best_child
         self._root.parent = None
 
-        r, c = divmod(best_move, DisjointSetBoard.N)
+        r, c = divmod(best_move, DisjointSetBoardFri.N)
         return Move(r, c)
 
     def update(self, board: Board, opp_move: Move | None) -> None:
         """Given a move, find the corresponding child of the root and set that as the new root."""
-        move = (opp_move.x * DisjointSetBoard.N + opp_move.y) if opp_move is not None else None
+        move = (opp_move.x * DisjointSetBoardFri.N + opp_move.y) if opp_move is not None else None
 
         # Reuse the tree if possible
         if self._root is not None and move is not None and move in self._root.children:
@@ -60,33 +60,34 @@ class MCTS:
             self._root.parent = None
         # Otherwise, create a completely new root node
         else:
-            if opp_move == MCTS.SWAP_MOVE:
+            if opp_move == MCTSFri.SWAP_MOVE:
                 self.colour = Colour.opposite(self.colour)
-            self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
+            self._root = MCTSNodeFri(self.colour, DisjointSetBoardFri.from_existing_board(board))
 
-    def _select(self) -> MCTSNode:
+    def _select(self) -> MCTSNodeFri:
         """Find an unexplored descendent of the root node."""
         node = self._root
         while not node.is_terminal and node.is_fully_explored:
-            node = self._select_best_child(node)
+            node = self._uct_select(node)
         return node
 
-    @staticmethod
-    def _select_best_child(parent: MCTSNode) -> MCTSNode:
-        """Select the best child node based off UCT-RAVE."""
-        log_parent_N = math.log(parent.N)
-        def uct_rave(move: int, child: MCTSNode) -> float:
-            exploit = child.Q / child.N
-            explore = MCTS.EXPLORATION_WEIGHT * math.sqrt(log_parent_N / child.N)
+    # TODO: Which formula for alpha / beta should we use?
+    def _uct_select(self, parent: MCTSNodeFri) -> MCTSNodeFri:
+        """Select a child of node, balancing exploration & exploitation."""
+        def uct_rave(move: int, child: MCTSNodeFri) -> float:
+            exploit = child.Q / (child.N + 1e-9)
+            explore = MCTSFri.EXPLORATION_WEIGHT * math.sqrt(math.log(parent.N + 1e-9) / (child.N + 1e-9))
 
             rave_Q, rave_N = parent.rave_Q[move], parent.rave_N[move]
-            amaf = rave_Q / rave_N
-            alpha = max(0.0, (MCTS.RAVE_K - child.N) / MCTS.RAVE_K)
-            return alpha * amaf + (1 - alpha) * exploit + explore
+            if rave_N > 0:
+                amaf = rave_Q / rave_N
+                alpha = max(0.0, (MCTSFri.RAVE_K - child.N) / MCTSFri.RAVE_K)
+                return alpha * amaf + (1 - alpha) * exploit + explore
+            return exploit + explore # Standard UCT
 
         return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
 
-    def _simulate(self, node: MCTSNode) -> tuple[int, list[int]]:
+    def _simulate(self, node: MCTSNodeFri) -> tuple[int, list[int]]:
         """Play through the entire game until a winner is found."""
         board = copy.deepcopy(node.board)
         current_colour = node.colour
@@ -103,13 +104,13 @@ class MCTS:
 
         return 1 if board.check_winner() == self._root.colour else -1, simulated_moves
 
-    def _biased_simulation_moves(self, board: DisjointSetBoard, colour: Colour) -> list[int]:
+    def _biased_simulation_moves(self, board: DisjointSetBoardFri, colour: Colour) -> list[int]:
         possible_moves = board.possible_moves
 
         # Prefer moves adjacent to existing own color
         good = []
         for move in possible_moves:
-            for neighbour in DisjointSetBoard.NEIGHBOURS[move]:
+            for neighbour in DisjointSetBoardFri.NEIGHBOURS[move]:
                 if (board.get_cell(neighbour)) == colour:
                     good.append(move)
                     break
@@ -124,7 +125,7 @@ class MCTS:
         # Keep a maximum of the 4 best moves
         return [move for _, move in scored[:max(4, len(scored)//5)]]
 
-    def _move_heuristic(self, board: DisjointSetBoard, move: int, colour: Colour) -> float:
+    def _move_heuristic(self, board: DisjointSetBoardFri, move: int, colour: Colour) -> float:
         x, y = divmod(move, board.N)
         n = board.N
         opponent_colour = Colour.opposite(self.colour)
@@ -142,7 +143,7 @@ class MCTS:
 
         # When adjacent is same color
         adj_bonus = 0
-        for neighbour in DisjointSetBoard.NEIGHBOURS[move]:
+        for neighbour in DisjointSetBoardFri.NEIGHBOURS[move]:
             if board.get_cell(neighbour) == colour:
                 adj_bonus += 3
             if board.get_cell(neighbour) == opponent_colour:
@@ -150,7 +151,7 @@ class MCTS:
 
         # Diagonal cells, where empty space in between is almost impossible for opponent to break
         bridge_bonus = 0
-        for move1, move2 in DisjointSetBoard.BRIDGE_PAIRS[move]:
+        for move1, move2 in DisjointSetBoardFri.BRIDGE_PAIRS[move]:
             r1, c1 = divmod(move1, board.N)
             r2, c2 = divmod(move2, board.N)
 
@@ -168,7 +169,7 @@ class MCTS:
         )
 
     @staticmethod
-    def _backpropagate(node: MCTSNode, reward: float, moves: list[int]) -> None:
+    def _backpropagate(node: MCTSNodeFri, reward: float, moves: list[int]) -> None:
         """Backpropagates rewards and visits until the root node is reached"""
         start_colour = node.colour
         current_node = node
