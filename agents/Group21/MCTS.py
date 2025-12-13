@@ -13,7 +13,7 @@ from src.Move import Move
 class MCTS:
 
     # Hyperparameters
-    EXPLORATION_WEIGHT = 1.0
+    EXPLORATION_WEIGHT = 0.7
     RAVE_K = 100
 
     SWAP_MOVE = -12 # (-1, -1) maps to -12
