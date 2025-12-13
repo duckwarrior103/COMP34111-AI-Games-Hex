@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p1",
         "--player1",
-        default="agents.DefaultAgents.NaiveAgent NaiveAgent",
+        default="agents.Group21.MCTSAgent MCTSAgent",
         type=str,
         help="Specify the player 1 agent, format: agents.GroupX.AgentFile AgentClassName .e.g. agents.Group0.NaiveAgent NaiveAgent",
     )
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p2",
         "--player2",
-        default="agents.DefaultAgents.NaiveAgent NaiveAgent",
+        default="agents.Group21.InputAgent InputAgent",
         type=str,
         help="Specify the player 2 agent, format: agents.GroupX.AgentFile AgentClassName .e.g. agents.Group0.NaiveAgent NaiveAgent",
     )
