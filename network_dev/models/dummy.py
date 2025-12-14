@@ -43,6 +43,7 @@ class DummyModel(nn.Module):
         self.eval()
         with torch.no_grad():
             state_tensor = torch.tensor(np.array(state), dtype=torch.float32).unsqueeze(0)  # Add batch dimension
+            print(state_tensor.shape)
             policy_probs, value = self.forward(state_tensor)
             return policy_probs.squeeze(0).numpy(), value.item()
 

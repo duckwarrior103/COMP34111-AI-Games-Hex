@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import torch
 from agents.Group21.AlphaZeroMCTS import AlphaZeroMCTS
 from src.AgentBase import AgentBase
 from src.Board import Board
@@ -16,7 +19,3 @@ class MCTSAlphaZeroAgent(AgentBase):
         # Select move_index with highest probability in pi distribution
         move_index = np.argmax(pi)
         return legal_moves[move_index]
-
-#TODO: implement actual model loading
-    def load_model(self):
-        pass

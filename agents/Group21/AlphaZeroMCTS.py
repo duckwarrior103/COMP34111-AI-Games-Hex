@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from src.Colour import Colour 
 from agents.Group21.utils import encode_board
+from copy import deepcopy
 
 class AlphaZeroMCTS:
     def __init__(self, neural_net, cpuct=1.0):
@@ -17,7 +18,7 @@ class AlphaZeroMCTS:
 
     def run(self, game, simulations=800):
         '''Runs MCTS simulations starting from the current game state'''
-        board = game.board
+        board = game.board # comment out for game playing
         player = game.current_player # is RED or BLUE
 
         for _ in range(simulations):
