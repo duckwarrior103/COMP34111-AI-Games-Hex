@@ -15,22 +15,20 @@ class DisjointSetBoard:
     BLUE_RIGHT = SIZE + 3
 
     NEIGHBOUR_OFFSETS = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]
-    BRIDGE_PATTERNS = [
-        (1, 0, 0, 1),
-        (0, 1, 1, 0),
-        (-1, 0, 0, -1),
-        (0, -1, -1, 0),
-    ]
 
-    # Initialise these after class declaration
+    # Initialise after class declaration
     NEIGHBOURS: list[list[int]] | None = None
-    BRIDGE_PAIRS: list[list[tuple[int, int]]] | None = None
 
     def __init__(self):
         self._state = [0] * self.SIZE # A 1D coordinate system
         self._parents = list(range(self.SIZE + 4)) # Each element is initially its own parent
         self._ranks = [0] * (self.SIZE + 4)
-        self.possible_moves = set(list(range(self.SIZE))) # Using a set for O(1) removal
+
+        # Maintain a list of the possible moves, along with a companion array
+        # The value at each index in the companion array is the move's actual position within possible_moves
+        # Need this for O(1) removal
+        self.possible_moves = list(range(self.SIZE))
+        self._move_to_index = list(range(self.SIZE))
 
     @classmethod
     def from_existing_board(cls, board: Board) -> 'DisjointSetBoard':
@@ -70,7 +68,7 @@ class DisjointSetBoard:
             elif c == self.N - 1:
                 self._union(index, self.BLUE_RIGHT)
 
-        self.possible_moves.remove(index)
+        self._remove_move(index)
 
     def check_winner(self) -> Colour | None:
         """
@@ -85,6 +83,17 @@ class DisjointSetBoard:
         else:
             return None
 
+    def _remove_move(self, move: int) -> None:
+        """Efficient removal of a move in O(1) time."""
+        move_index = self._move_to_index[move]
+        last_index = len(self.possible_moves) - 1
+        last_move = self.possible_moves[last_index]
+        self.possible_moves[move_index] = last_move
+        self._move_to_index[last_move] = move_index
+        self.possible_moves.pop()
+        self._move_to_index[move] = -1 # Mark as removed
+
+    # Disjoint Union Set Functions
     def _find(self, x: int) -> int:
         # Path compression
         if self._parents[x] != x:
@@ -117,25 +126,6 @@ DisjointSetBoard.NEIGHBOURS = [
         for dr, dc in DisjointSetBoard.NEIGHBOUR_OFFSETS
         for (r, c) in [(index // DisjointSetBoard.N + dr, index % DisjointSetBoard.N + dc)]
         if 0 <= r < DisjointSetBoard.N and 0 <= c < DisjointSetBoard.N
-    ]
-    for index in range(DisjointSetBoard.SIZE)
-]
-
-# Precompute bridge pairs
-DisjointSetBoard.BRIDGE_PAIRS = [
-    [
-        ((r1 * DisjointSetBoard.N + c1), (r2 * DisjointSetBoard.N + c2))
-        for (dr1, dc1, dr2, dc2) in DisjointSetBoard.BRIDGE_PATTERNS
-        for (r1, c1, r2, c2) in [
-            (
-                index // DisjointSetBoard.N + dr1,
-                index % DisjointSetBoard.N + dc1,
-                index // DisjointSetBoard.N + dr2,
-                index % DisjointSetBoard.N + dc2
-            )
-        ]
-        if 0 <= r1 < DisjointSetBoard.N and 0 <= c1 < DisjointSetBoard.N and
-           0 <= r2 < DisjointSetBoard.N and 0 <= c2 < DisjointSetBoard.N
     ]
     for index in range(DisjointSetBoard.SIZE)
 ]

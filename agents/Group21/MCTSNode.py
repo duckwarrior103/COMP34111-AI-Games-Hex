@@ -22,7 +22,7 @@ class MCTSNode:
         self.rave_Q = [0.5] * DisjointSetBoard.SIZE
         self.rave_N = [8] * DisjointSetBoard.SIZE
 
-        self.unexplored_moves = list(self.board.possible_moves)
+        self.unexplored_moves = self.board.possible_moves[:]
         self.is_terminal = self.board.check_winner() is not None
 
     @property
@@ -30,7 +30,6 @@ class MCTSNode:
         """Returns True if this all children of this node have been explored at least once"""
         return not self.unexplored_moves
 
-    # TODO: Currently not using Gan's heuristic
     def expand(self) -> 'MCTSNode':
         """
         Selects a random unexplored move, removing it from the list
