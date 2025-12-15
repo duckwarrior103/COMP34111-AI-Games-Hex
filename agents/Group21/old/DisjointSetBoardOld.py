@@ -2,7 +2,7 @@ from src.Board import Board
 from src.Colour import Colour
 
 
-class DisjointSetBoardFri:
+class DisjointSetBoardOld:
 
     # Board size
     N = 11
@@ -33,13 +33,13 @@ class DisjointSetBoardFri:
         self.possible_moves = set(list(range(self.SIZE))) # Using a set for O(1) removal
 
     @classmethod
-    def from_existing_board(cls, board: Board) -> 'DisjointSetBoardFri':
-        """Converts a Board to a DisjointSetBoardFri."""
+    def from_existing_board(cls, board: Board) -> 'DisjointSetBoardOld':
+        """Converts a Board to a DisjointSetBoardOld."""
         dsu_board = cls()
-        for r in range(DisjointSetBoardFri.N):
-            for c in range(DisjointSetBoardFri.N):
+        for r in range(DisjointSetBoardOld.N):
+            for c in range(DisjointSetBoardOld.N):
                 if board.tiles[r][c].colour is not None:
-                    index = r * DisjointSetBoardFri.N + c
+                    index = r * DisjointSetBoardOld.N + c
                     dsu_board.place(index, board.tiles[r][c].colour)
         return dsu_board
 
@@ -112,31 +112,31 @@ class DisjointSetBoardFri:
 
 
 # Precompute neighbours
-DisjointSetBoardFri.NEIGHBOURS = [
+DisjointSetBoardOld.NEIGHBOURS = [
     [
-        r * DisjointSetBoardFri.N + c
-        for dr, dc in DisjointSetBoardFri.NEIGHBOUR_OFFSETS
-        for (r, c) in [(index // DisjointSetBoardFri.N + dr, index % DisjointSetBoardFri.N + dc)]
-        if 0 <= r < DisjointSetBoardFri.N and 0 <= c < DisjointSetBoardFri.N
+        r * DisjointSetBoardOld.N + c
+        for dr, dc in DisjointSetBoardOld.NEIGHBOUR_OFFSETS
+        for (r, c) in [(index // DisjointSetBoardOld.N + dr, index % DisjointSetBoardOld.N + dc)]
+        if 0 <= r < DisjointSetBoardOld.N and 0 <= c < DisjointSetBoardOld.N
     ]
-    for index in range(DisjointSetBoardFri.SIZE)
+    for index in range(DisjointSetBoardOld.SIZE)
 ]
 
 # Precompute bridge pairs
-DisjointSetBoardFri.BRIDGE_PAIRS = [
+DisjointSetBoardOld.BRIDGE_PAIRS = [
     [
-        ((r1 * DisjointSetBoardFri.N + c1), (r2 * DisjointSetBoardFri.N + c2))
-        for (dr1, dc1, dr2, dc2) in DisjointSetBoardFri.BRIDGE_PATTERNS
+        ((r1 * DisjointSetBoardOld.N + c1), (r2 * DisjointSetBoardOld.N + c2))
+        for (dr1, dc1, dr2, dc2) in DisjointSetBoardOld.BRIDGE_PATTERNS
         for (r1, c1, r2, c2) in [
             (
-                index // DisjointSetBoardFri.N + dr1,
-                index % DisjointSetBoardFri.N + dc1,
-                index // DisjointSetBoardFri.N + dr2,
-                index % DisjointSetBoardFri.N + dc2
+                index // DisjointSetBoardOld.N + dr1,
+                index % DisjointSetBoardOld.N + dc1,
+                index // DisjointSetBoardOld.N + dr2,
+                index % DisjointSetBoardOld.N + dc2
             )
         ]
-        if 0 <= r1 < DisjointSetBoardFri.N and 0 <= c1 < DisjointSetBoardFri.N and
-           0 <= r2 < DisjointSetBoardFri.N and 0 <= c2 < DisjointSetBoardFri.N
+        if 0 <= r1 < DisjointSetBoardOld.N and 0 <= c1 < DisjointSetBoardOld.N and
+           0 <= r2 < DisjointSetBoardOld.N and 0 <= c2 < DisjointSetBoardOld.N
     ]
-    for index in range(DisjointSetBoardFri.SIZE)
+    for index in range(DisjointSetBoardOld.SIZE)
 ]

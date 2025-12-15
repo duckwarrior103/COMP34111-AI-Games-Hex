@@ -17,9 +17,9 @@ class MCTSNode:
         self.parent = parent
 
         self.children: dict[int, MCTSNode] = {} # Move -> MCTSNode
-        self.Q = 0.0 # Total reward
+        self.W = 0.0 # Total reward
         self.N = 0 # Total number of visits
-        self.rave_Q = [0.5] * DisjointSetBoard.SIZE
+        self.rave_W = [0.5] * DisjointSetBoard.SIZE
         self.rave_N = [8] * DisjointSetBoard.SIZE
 
         self.unexplored_moves = self.board.possible_moves[:]

@@ -14,7 +14,7 @@ class MCTS:
 
     # Hyperparameters
     EXPLORATION_WEIGHT = 0.7
-    RAVE_K = 100
+    RAVE_K = 200
 
     SWAP_MOVE = -12 # (-1, -1) maps to -12
 
@@ -39,7 +39,7 @@ class MCTS:
             return Move(r, c)
 
         # Pick the child with the highest visit count
-        best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].Q))
+        best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].W))
 
         # Update to new state
         self._root = best_child
@@ -74,11 +74,11 @@ class MCTS:
         """Select the best child node based off UCT-RAVE."""
         log_parent_N = math.log(parent.N)
         def uct_rave(move: int, child: MCTSNode) -> float:
-            exploit = child.Q / child.N
+            exploit = child.W / child.N
             explore = MCTS.EXPLORATION_WEIGHT * math.sqrt(log_parent_N / child.N)
 
-            rave_Q, rave_N = parent.rave_Q[move], parent.rave_N[move]
-            amaf = rave_Q / rave_N
+            rave_W, rave_N = parent.rave_W[move], parent.rave_N[move]
+            amaf = rave_W / rave_N
             alpha = max(0.0, (MCTS.RAVE_K - child.N) / MCTS.RAVE_K)
             return alpha * amaf + (1 - alpha) * exploit + explore
 
@@ -106,7 +106,7 @@ class MCTS:
         current_reward = reward
         while current_node is not None:
             # MCTS update
-            current_node.Q += current_reward
+            current_node.W += current_reward
             current_node.N += 1
 
             # RAVE update
@@ -114,7 +114,7 @@ class MCTS:
             # Odd indices were made by the other node
             offset = 0 if current_node.colour == start_colour else 1
             for i in range(offset, len(moves), 2):
-                current_node.rave_Q[moves[i]] += current_reward
+                current_node.rave_W[moves[i]] += current_reward
                 current_node.rave_N[moves[i]] += 1
 
             current_node = current_node.parent

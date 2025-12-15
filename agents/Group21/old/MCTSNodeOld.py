@@ -1,27 +1,27 @@
 import copy
 
 from agents.Group21.DisjointSetBoard import DisjointSetBoard
-from agents.Group21.old.DisjointSetBoardFri import DisjointSetBoardFri
+from agents.Group21.old.DisjointSetBoardOld import DisjointSetBoardOld
 from src.Colour import Colour
 from random import randrange
 
 
-class MCTSNodeFri:
+class MCTSNodeOld:
     def __init__(
         self, 
         colour: Colour,
-        board: DisjointSetBoardFri,
-        parent: "MCTSNodeFri | None" = None
+        board: DisjointSetBoardOld,
+        parent: "MCTSNodeOld | None" = None
     ):
         self.board = board
         self.colour = colour
         self.parent = parent
 
-        self.children: dict[int, MCTSNodeFri] = {} # Move -> MCTSNode
+        self.children: dict[int, MCTSNodeOld] = {} # Move -> MCTSNode
         self.Q = 0.0 # Total reward
         self.N = 0 # Total number of visits
-        self.rave_Q = [0.0] * DisjointSetBoardFri.SIZE
-        self.rave_N = [0] * DisjointSetBoardFri.SIZE
+        self.rave_Q = [0.0] * DisjointSetBoardOld.SIZE
+        self.rave_N = [0] * DisjointSetBoardOld.SIZE
 
         self.unexplored_moves = list(self.board.possible_moves)
         self.is_terminal = self.board.check_winner() is not None
@@ -32,7 +32,7 @@ class MCTSNodeFri:
         return not self.unexplored_moves
 
     # TODO: Currently not using Gan's heuristic
-    def expand(self) -> 'MCTSNodeFri':
+    def expand(self) -> 'MCTSNodeOld':
         """
         Selects a random unexplored move, removing it from the list
         before creating the child MCTSNode and adding to self.children.
@@ -50,7 +50,7 @@ class MCTSNodeFri:
         board_copy = copy.deepcopy(self.board)
         board_copy.place(move, self.colour)
 
-        child_node = MCTSNodeFri(
+        child_node = MCTSNodeOld(
             colour=Colour.opposite(self.colour),
             board=board_copy,
             parent=self
