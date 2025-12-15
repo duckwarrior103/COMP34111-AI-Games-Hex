@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--num_games", type=int, default=10)
     parser.add_argument("-p1", "--player1", type=str, default="agents.Group21.MCTSAgent MCTSAgent")
-    parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.old.MCTSAgentOld MCTSAgentOld")
+    parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.v2.MCTSAgentV2 MCTSAgentV2")
     # parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.RandomAgent RandomAgent")
 
     args = parser.parse_args()
