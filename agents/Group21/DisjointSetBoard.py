@@ -71,11 +71,7 @@ class DisjointSetBoard:
         self._remove_move(index)
 
     def check_winner(self) -> Colour | None:
-        """
-        Check if a winner exists efficiently by checking disjoint sets.
-
-        :return: The winning Colour or None if no winner.
-        """
+        """Check if a winner exists efficiently by checking disjoint sets."""
         if self._find(self.RED_TOP) == self._find(self.RED_BOTTOM):
             return Colour.RED
         elif self._find(self.BLUE_LEFT) == self._find(self.BLUE_RIGHT):

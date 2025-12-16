@@ -15,22 +15,26 @@ class MCTS:
     # Hyperparameters
     EXPLORATION_WEIGHT = 0.7
     RAVE_K = 200
+    TIME_LIMIT = 0.5
+    MAX_ITERATIONS = 2000
 
     SWAP_MOVE = -12 # (-1, -1) maps to -12
 
     def __init__(self, colour: Colour):
         self.colour = colour
         self._root: MCTSNode | None = None
+        self._current_turn = 0
 
-    def run(self, time_limit: float = 0.5, iterations: int = 2000) -> Move:
-        end_time = time.time() + time_limit
-        iters_left = iterations
+    def run(self) -> Move:
+        """Run the MCTS algorithm, returning the best move."""
+        end_time = time.time() + self.TIME_LIMIT
+        iters_left = self.MAX_ITERATIONS
 
         while iters_left > 0 and time.time() < end_time:
             leaf = self._select()
             child = leaf.expand() if not leaf.is_terminal else leaf
-            reward, moves = self._simulate(child)
-            self._backpropagate(child, reward, moves)
+            winner, moves = self._simulate(child)
+            self._backpropagate(child, winner, moves)
             iters_left -= 1
 
         if not self._root.children:
@@ -46,6 +50,7 @@ class MCTS:
         self._root.parent = None
 
         r, c = divmod(best_move, DisjointSetBoard.N)
+        self._current_turn += 1
         return Move(r, c)
 
     def update(self, board: Board, opp_move: Move | None) -> None:
@@ -61,6 +66,10 @@ class MCTS:
             if opp_move == MCTS.SWAP_MOVE:
                 self.colour = Colour.opposite(self.colour)
             self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
+
+        # No previous move means that we are starting off
+        if opp_move is not None:
+            self._current_turn += 1
 
     def _select(self) -> MCTSNode:
         """Find an unexplored descendent of the root node."""
@@ -84,7 +93,7 @@ class MCTS:
 
         return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
 
-    def _simulate(self, node: MCTSNode) -> tuple[int, list[int]]:
+    def _simulate(self, node: MCTSNode) -> tuple[Colour, list[int]]:
         """Do full board simulation."""
         board = copy.deepcopy(node.board)
         current_colour = node.colour
@@ -96,17 +105,17 @@ class MCTS:
             board.place(move, current_colour)
             current_colour = Colour.opposite(current_colour)
 
-        return 1 if board.check_winner() == self._root.colour else -1, moves_to_play
+        return board.check_winner(), moves_to_play
 
     @staticmethod
-    def _backpropagate(node: MCTSNode, reward: float, moves: list[int]) -> None:
+    def _backpropagate(node: MCTSNode, winner: Colour, moves: list[int]) -> None:
         """Backpropagates rewards and visits until the root node is reached"""
         start_colour = node.colour
         current_node = node
-        current_reward = reward
         while current_node is not None:
             # MCTS update
-            current_node.W += current_reward
+            if current_node.colour == winner:
+                current_node.W += 1
             current_node.N += 1
 
             # RAVE update
@@ -114,8 +123,8 @@ class MCTS:
             # Odd indices were made by the other node
             offset = 0 if current_node.colour == start_colour else 1
             for i in range(offset, len(moves), 2):
-                current_node.rave_W[moves[i]] += current_reward
+                if current_node.colour == winner:
+                    current_node.rave_W[moves[i]] += 1
                 current_node.rave_N[moves[i]] += 1
 
             current_node = current_node.parent
-            current_reward = -current_reward # Flip reward as 0-sum
