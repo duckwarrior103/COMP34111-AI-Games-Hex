@@ -31,9 +31,15 @@ class SelfPlay:
             # get legal moves and improved policy from MCTS from current state 
             legal_moves, pi = current_agent.mcts.run(game, simulations=self.simulations)
 
+            size = game.board.size
+            action_size = size * size
+            full_pi = np.zeros(action_size, dtype=np.float32)
+            for i, move in enumerate(legal_moves):
+                full_pi[move] = pi[i]
+
             # store training sample but without z yet
             states.append(self.encode_board(game.board, current_player_colour))
-            policies.append(pi)
+            policies.append(full_pi)
             players_to_move.append(current_player_colour)
 
             # Sample a move from the improved policy pi
