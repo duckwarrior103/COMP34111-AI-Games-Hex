@@ -44,6 +44,8 @@ def run_games(num_games, player1, player1Name, player2, player2Name):
 
         output = result.stdout + result.stderr
         winner = extract_winner(output)
+        if winner:
+            print(f"Game {i+1} winner: {winner}")
 
         if winner == player1Name:
             wins += 1
