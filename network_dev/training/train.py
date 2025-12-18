@@ -72,10 +72,19 @@ def train(model, epochs=10, batch_size=128, lr=1e-3, device=None,
             #     target_policies,
             #     reduction="batchmean"
             # )
-            policy_loss = -torch.sum(
-                target_policies * F.log_softmax(pred_policy_logits, dim=1),
-                dim=1
-            ).mean()
+            # policy_loss = -torch.sum(
+            #     target_policies * F.log_softmax(pred_policy_logits, dim=1),
+            #     dim=1
+            # ).mean()
+
+            eps = 1e-8
+
+            policy_loss = -torch.mean(
+                torch.sum(
+                    target_policies * torch.log(pred_policy_logits + eps),
+                    dim=1
+                )
+            )
 
             # ----- Total loss -----
             loss = value_loss + policy_loss

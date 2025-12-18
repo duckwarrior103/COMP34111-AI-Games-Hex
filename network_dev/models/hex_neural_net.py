@@ -54,7 +54,7 @@ class HexNeuralNet(nn.Module):
             nn.ReLU(),
             nn.Flatten(),               # flattens from 2 x 11 x 11 to 242 
             nn.Linear(2 * board_size * board_size, board_size * board_size), # from 242 to 121
-            # nn.Softmax(dim=1)
+            nn.Softmax(dim=1)
         )
 
         # Value Head
@@ -96,5 +96,5 @@ class HexNeuralNet(nn.Module):
             self.to(device)
             state_tensor = torch.tensor(np.array(state), dtype=torch.float32).unsqueeze(0).to(device)  # Add batch dimension
             policy_logits, value = self.forward(state_tensor)
-            policy_probs = torch.softmax(policy_logits, dim=1)
-            return policy_probs.squeeze(0).cpu().numpy(), value.item()
+            # policy_probs = torch.softmax(policy_logits, dim=1)
+            return policy_logits.squeeze(0).cpu().numpy(), value.item()
