@@ -156,6 +156,14 @@ if __name__ == "__main__":
         default=1e-3,
         help="learning rate"
     )
+
+    parser.add_argument(
+        "--new",
+        "-new",
+        type=bool,
+        default=False,
+        help="create new model fresh"
+    )
     args = parser.parse_args()
 
     create_train_and_save(
