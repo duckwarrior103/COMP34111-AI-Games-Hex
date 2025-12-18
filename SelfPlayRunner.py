@@ -6,8 +6,7 @@ from agents.Group21.SelfPlay import SelfPlay
 from src.Game import Game
 import numpy as np
 from pathlib import Path
-from saved_models.RandomNN import RandomNN
-from network_dev.models.dummy import DummyModel
+import time
     
 def load_model(model_name="hex_neural_net.pth"):
     # Project root (two levels up from this script)
@@ -28,33 +27,48 @@ def load_model(model_name="hex_neural_net.pth"):
     return model
 
 def main():
-    dummy = "dummy_model.pth"
     alpha = "hex_neural_net.pth"
-    # Load model 
+
+    # Load model
     nn = load_model(model_name=alpha)
 
     # Initialize SelfPlay engine
-    
     self_play_engine = SelfPlay(
         neural_net=nn,
-        game_cls=Game,  
+        game_cls=Game,
         simulations=50
     )
 
-    # Generate self-play training data
-    num_games = 10  # number of games to generate
+    num_games = 200
     training_examples = []
+
+    start_time = time.perf_counter()
+
     for i in range(num_games):
+        game_start = time.perf_counter()
         print(f"Playing game {i+1}/{num_games}...")
+
         examples = self_play_engine.play_game()
         training_examples += examples
+
+        game_time = time.perf_counter() - game_start
+        print(f"  Game {i+1} took {game_time:.2f}s")
+
+    total_time = time.perf_counter() - start_time
 
     # Save training examples
     save_file = "training_data_self_play.pkl"
     with open(save_file, "wb") as f:
-        pickle.dump(training_examples, f) 
+        pickle.dump(training_examples, f)
 
-    print(f"Saved {len(training_examples)} training samples to {save_file}")
+    print("\n=== Self-play timing summary ===")
+    print(f"Games played:           {num_games}")
+    print(f"Total time:             {total_time:.2f}s")
+    print(f"Avg time per game:      {total_time / num_games:.2f}s")
+    print(f"Total training samples: {len(training_examples)}")
+    print(f"Samples per second:     {len(training_examples) / total_time:.2f}")
+
+    print(f"\nSaved {len(training_examples)} training samples to {save_file}")
 
 if __name__ == "__main__":
     main()
