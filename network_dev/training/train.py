@@ -36,7 +36,7 @@ def create_train_and_save(model, epochs=10, batch_size=32, lr=1e-3, device=None,
           file_name="training_data_self_play.pkl"):
 
     print(f"Training from: {file_name}")
-    device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.train()
 
