@@ -15,7 +15,7 @@ class MCTS:
     # Hyperparameters
     EXPLORATION_WEIGHT = 0.7
     RAVE_K = 200
-    TIME_LIMIT = 0.5
+    TIME_LIMIT = 1.0
     MAX_ITERATIONS = 2000
 
     SWAP_MOVE = -12 # (-1, -1) maps to -12
@@ -23,7 +23,6 @@ class MCTS:
     def __init__(self, colour: Colour):
         self.colour = colour
         self._root: MCTSNode | None = None
-        self._current_turn = 0
 
     def run(self) -> Move:
         """Run the MCTS algorithm, returning the best move."""
@@ -50,7 +49,6 @@ class MCTS:
         self._root.parent = None
 
         r, c = divmod(best_move, DisjointSetBoard.N)
-        self._current_turn += 1
         return Move(r, c)
 
     def update(self, board: Board, opp_move: Move | None) -> None:
@@ -66,10 +64,6 @@ class MCTS:
             if opp_move == MCTS.SWAP_MOVE:
                 self.colour = Colour.opposite(self.colour)
             self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
-
-        # No previous move means that we are starting off
-        if opp_move is not None:
-            self._current_turn += 1
 
     def _select(self) -> MCTSNode:
         """Find an unexplored descendent of the root node."""
