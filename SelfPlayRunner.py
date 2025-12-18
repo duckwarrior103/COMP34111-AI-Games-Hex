@@ -7,6 +7,7 @@ from src.Game import Game
 import numpy as np
 from pathlib import Path
 import time
+import argparse
     
 def load_model(model_name="hex_neural_net.pth"):
     # Project root (two levels up from this script)
@@ -29,6 +30,11 @@ def load_model(model_name="hex_neural_net.pth"):
 def main():
     alpha = "hex_neural_net.pth"
 
+    # Command-line arguments
+    parser = argparse.ArgumentParser(description="Generate self-play training data")
+    parser.add_argument('-n', '--num-games', type=int, default=10, help='number of games to generate')
+    args = parser.parse_args()
+
     # Load model
     nn = load_model(model_name=alpha)
 
@@ -39,7 +45,8 @@ def main():
         simulations=50
     )
 
-    num_games = 200
+    # Use command-line value for number of games
+    num_games = args.num_games
     training_examples = []
 
     start_time = time.perf_counter()
