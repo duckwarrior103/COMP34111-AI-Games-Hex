@@ -115,7 +115,12 @@ def create_train_and_save(file_name="training_data_self_play.pkl", batch_size=12
         model = torch.load(model_path, map_location="cpu", weights_only=False)
         print("Neural network model loaded successfully.")
         return model
-    model = HexNeuralNet() if new else load_model()
+    if new:
+        print("Creating a new HexNeuralNet model.")
+        model = HexNeuralNet()
+    else:
+        print("Loading existing HexNeuralNet model.")
+        model = load_model()
     train(model, file_name=file_name, batch_size=batch_size, epochs=epochs, lr=lr)
 
     save_dir = PROJECT_ROOT / "saved_models"
