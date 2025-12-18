@@ -164,10 +164,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--new",
-        "-new",
-        type=bool,
-        default=False,
-        help="create new model fresh"
+        action=argparse.BooleanOptionalAction,
+        default=False
     )
     args = parser.parse_args()
 
