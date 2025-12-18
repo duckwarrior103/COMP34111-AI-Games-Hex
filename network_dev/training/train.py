@@ -13,7 +13,8 @@ sys.path.append(str(PROJECT_ROOT))
 from network_dev.models.hex_neural_net import HexNeuralNet
 
 def load_data(batch_size=32, file_name="training_data_heuristic.pkl"):
-    data = pickle.load(open("training_data_heuristic.pkl", "rb"))
+    print(f"Loading data from {file_name}...")
+    data = pickle.load(open(file_name, "rb"))
     states = []
     policies = []
     values = []
@@ -32,7 +33,7 @@ def load_data(batch_size=32, file_name="training_data_heuristic.pkl"):
 
     return dataloader
 
-def train(model, epochs=10, batch_size=32, lr=1e-3, device=None,
+def train(model, epochs=10, batch_size=128, lr=1e-3, device=None,
           file_name="training_data_heuristic.pkl"):
 
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -90,9 +91,9 @@ def train(model, epochs=10, batch_size=32, lr=1e-3, device=None,
         )
     print(f"Training complete.")
 
-def create_train_and_save(file_name="training_data_self_play.pkl"):
+def create_train_and_save(file_name="training_data_self_play.pkl", batch_size=128, epochs=10, lr=1e-3):
     model = HexNeuralNet()
-    train(model, file_name=file_name)
+    train(model, file_name=file_name, batch_size=batch_size, epochs=epochs, lr=lr)
 
     save_dir = PROJECT_ROOT / "saved_models"
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -112,6 +113,32 @@ if __name__ == "__main__":
         default="training_data_self_play.pkl",
         help="training data file"
     )
+    parser.add_argument(
+        "--batch_size",
+        "-bs",
+        type=int,
+        default=128,
+        help="batch size"
+    )
+    parser.add_argument(
+        "--epochs",
+        "-e",
+        type=int,
+        default=10,
+        help="number of training epochs"
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=1e-3,
+        help="learning rate"
+    )
     args = parser.parse_args()
 
-    create_train_and_save(args.file)
+    create_train_and_save(
+    file_name=args.file,
+    batch_size=args.batch_size,
+    epochs=args.epochs,
+    lr=args.lr
+    )
+
