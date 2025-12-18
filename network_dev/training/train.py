@@ -5,6 +5,7 @@ import torch
 import torch.optim as optim
 import numpy as np 
 import argparse
+import torch.nn.functional as F
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
@@ -31,13 +32,15 @@ def load_data(batch_size=32, file_name="training_data_heuristic.pkl"):
 
     return dataloader
 
-def train(model, epochs=10, batch_size=32, lr=1e-3, device=None, file_name="training_data_heuristic.pkl"):
+def create_train_and_save(model, epochs=10, batch_size=32, lr=1e-3, device=None,
+          file_name="training_data_self_play.pkl"):
+
+    print(f"Training from: {file_name}")
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.train()
 
     dataloader = load_data(batch_size=batch_size, file_name=file_name)
-
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     for epoch in range(epochs):
@@ -46,29 +49,33 @@ def train(model, epochs=10, batch_size=32, lr=1e-3, device=None, file_name="trai
         total_value_loss = 0.0
 
         for states, target_policies, target_values in dataloader:
-            states = states.to(device)                 # (B, 3, 11, 11)
+            states = states.to(device)                    # (B, 3, 11, 11)
             target_policies = target_policies.to(device)  # (B, 121)
             target_values = target_values.to(device)      # (B,)
 
             optimizer.zero_grad()
 
             # Forward pass
-            pred_policy, pred_value = model(states)
-            # pred_policy: (B, 121)
+            pred_policy_logits, pred_value = model(states)
+            # pred_policy_logits: (B, 121)
             # pred_value: (B, 1)
 
-            # ----- Value loss (MSE) -----
-            value_loss = ((pred_value.squeeze(1) - target_values) ** 2).mean()
+            # ----- Value loss -----
+            value_loss = F.mse_loss(
+                pred_value.squeeze(1),
+                target_values
+            )
 
-            # ----- Policy loss (cross-entropy with distribution) -----
-            policy_loss = -(
-                target_policies * torch.log(pred_policy + 1e-8)
-            ).sum(dim=1).mean()
+            # ----- Policy loss (KL divergence) -----
+            policy_loss = F.kl_div(
+                F.log_softmax(pred_policy_logits, dim=1),
+                target_policies,
+                reduction="batchmean"
+            )
 
             # ----- Total loss -----
             loss = value_loss + policy_loss
 
-            # Backprop
             loss.backward()
             optimizer.step()
 
@@ -82,20 +89,6 @@ def train(model, epochs=10, batch_size=32, lr=1e-3, device=None, file_name="trai
             f"Policy: {total_policy_loss:.4f} | "
             f"Value: {total_value_loss:.4f}"
         )
-
-def create_train_and_save(file_name="training_data_heu.pkl"):
-    model = HexNeuralNet()
-    train(model, file_name="training_data_heu.pkl")
-
-    save_dir = PROJECT_ROOT / "saved_models"
-    save_dir.mkdir(parents=True, exist_ok=True)
-
-    save_path = save_dir / "hex_neural_net.pth"
-    torch.save(model, str(save_path))
-
-    print(f"Model saved at {save_path}")
-    return model
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
