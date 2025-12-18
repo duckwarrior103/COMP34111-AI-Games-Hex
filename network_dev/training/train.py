@@ -33,7 +33,7 @@ def load_data(batch_size=32, file_name="training_data_heuristic.pkl"):
 
     return dataloader
 
-def train(model, epochs=10, batch_size=128, lr=1e-3, device=None,
+def train(model, epochs=10, batch_size=32, lr=1e-3, device=None,
           file_name="training_data_heuristic.pkl"):
 
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -105,17 +105,17 @@ def train(model, epochs=10, batch_size=128, lr=1e-3, device=None,
     print(f"Training complete.")
 
 def create_train_and_save(file_name="training_data_self_play.pkl", batch_size=128, epochs=10, lr=1e-3):
-    def load_model():
-            model_name="hex_neural_net.pth"
-            # Project root (two levels up from this script)
-            project_root = Path(__file__).resolve().parents[2]
-            models_dir = project_root / "saved_models"
-            model_path = models_dir / model_name   
-            # Load the full saved model
-            model = torch.load(model_path, map_location="cpu", weights_only=False)
-            print("Neural network model loaded successfully.")
-            return model
-    model = load_model()
+    # def load_model():
+    #         model_name="hex_neural_net.pth"
+    #         # Project root (two levels up from this script)
+    #         project_root = Path(__file__).resolve().parents[2]
+    #         models_dir = project_root / "saved_models"
+    #         model_path = models_dir / model_name   
+    #         # Load the full saved model
+    #         model = torch.load(model_path, map_location="cpu", weights_only=False)
+    #         print("Neural network model loaded successfully.")
+    #         return model
+    model = HexNeuralNet()
     train(model, file_name=file_name, batch_size=batch_size, epochs=epochs, lr=lr)
 
     save_dir = PROJECT_ROOT / "saved_models"

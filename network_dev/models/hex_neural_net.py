@@ -95,6 +95,5 @@ class HexNeuralNet(nn.Module):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.to(device)
             state_tensor = torch.tensor(np.array(state), dtype=torch.float32).unsqueeze(0).to(device)  # Add batch dimension
-            policy_logits, value = self.forward(state_tensor)
-            # policy_probs = torch.softmax(policy_logits, dim=1)
-            return policy_logits.squeeze(0).cpu().numpy(), value.item()
+            policy_probs, value = self.forward(state_tensor)
+            return policy_probs.squeeze(0).cpu().numpy(), value.item()
