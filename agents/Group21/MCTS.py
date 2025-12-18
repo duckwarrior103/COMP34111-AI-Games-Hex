@@ -1,7 +1,7 @@
 import copy
 import math
+import random
 import time
-from random import choice, shuffle
 
 from agents.Group21.DisjointSetBoard import DisjointSetBoard
 from agents.Group21.MCTSNode import MCTSNode
@@ -46,7 +46,7 @@ class MCTS:
             iters_left -= 1
 
         if not self._root.children:
-            move = choice(self._root.unexplored_moves)
+            move = random.choice(self._root.unexplored_moves)
             r, c = divmod(move, DisjointSetBoard.N)
             return Move(r, c)
 
@@ -103,7 +103,7 @@ class MCTS:
 
         # Play randomly until the board is full
         moves_to_play = board.legal_moves[:]
-        shuffle(moves_to_play)
+        random.shuffle(moves_to_play)
         for move in moves_to_play:
             board.place(move, current_colour)
             current_colour = Colour.opposite(current_colour)
