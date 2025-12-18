@@ -1,8 +1,8 @@
 import copy
+import random
 
 from agents.Group21.DisjointSetBoard import DisjointSetBoard
 from src.Colour import Colour
-from random import randrange
 
 
 class MCTSNode:
@@ -11,12 +11,10 @@ class MCTSNode:
         colour: Colour,
         board: DisjointSetBoard,
         parent: "MCTSNode | None" = None,
-        turn: int = 0
     ):
         self.board = board
         self.colour = colour
         self.parent = parent
-        self.turn = turn
 
         self.children: dict[int, MCTSNode] = {} # Move -> MCTSNode
         self.W = 0.0 # Total reward
@@ -24,7 +22,11 @@ class MCTSNode:
         self.rave_W = [0.5] * DisjointSetBoard.SIZE # Neutral prior
         self.rave_N = [8] * DisjointSetBoard.SIZE
 
-        self.unexplored_moves = self.board.possible_moves[:]
+        # Copy the list of possible moves and shuffle
+        # Allows for us to pop from the end to get a random move -> O(1)
+        self.unexplored_moves = self.board.legal_moves[:]
+        random.shuffle(self.unexplored_moves)
+
         self.is_terminal = self.board.check_winner() is not None
 
     @property
@@ -34,18 +36,16 @@ class MCTSNode:
 
     def expand(self) -> 'MCTSNode':
         """
-        Selects a random unexplored move, removing it from the list
-        before creating the child MCTSNode and adding to self.children.
+        Searches first for any forced moves (immediate wins or losses).
+        If so, we return that move and prune any siblings.
+        Otherwise, we expand with a random unexplored node.
         """
-        random_index = randrange(len(self.unexplored_moves))
-        move = self.unexplored_moves[random_index]
-
-        # Swap with last element and pop for O(1) removal
-        # Not sure how much difference this actually makes
-        last_index = len(self.unexplored_moves) - 1
-        if random_index != last_index:
-            self.unexplored_moves[random_index] = self.unexplored_moves[last_index]
-        self.unexplored_moves.pop()
+        forced_move = self.board.find_forced_move(self.colour)
+        if forced_move:
+            move = forced_move
+            self.unexplored_moves.clear()
+        else:
+            move = self.unexplored_moves.pop()
 
         board_copy = copy.deepcopy(self.board)
         board_copy.place(move, self.colour)

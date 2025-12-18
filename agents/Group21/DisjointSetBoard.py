@@ -27,7 +27,7 @@ class DisjointSetBoard:
         # Maintain a list of the possible moves, along with a companion array
         # The value at each index in the companion array is the move's actual position within possible_moves
         # Need this for O(1) removal
-        self.possible_moves = list(range(self.SIZE))
+        self.legal_moves = list(range(self.SIZE))
         self._move_to_index = list(range(self.SIZE))
 
     @classmethod
@@ -79,14 +79,59 @@ class DisjointSetBoard:
         else:
             return None
 
+    def find_forced_move(self, colour: Colour) -> int | None:
+        """Find a forced move, if any, for the given colour."""
+        for move in self.legal_moves:
+            if self.is_winning_move(move, colour):
+                return move
+
+        # Can be more than one losing move that we need to block, but here we just return the first we find
+        # Because if there's more than one we're cooked anyway
+        for move in self.legal_moves:
+            if self.is_winning_move(move, Colour.opposite(colour)):
+                return move
+
+        return None
+
+    def is_winning_move(self, index: int, colour: Colour) -> bool:
+        """Does placing this move here with the given colour result in an immediate win?"""
+        colour = 1 if colour == Colour.RED else 2
+
+        # Check if current move is on the border
+        r, c = divmod(index, self.N)
+        if colour == 1:
+            edge1_root, edge2_root = self._find(self.RED_TOP), self._find(self.RED_BOTTOM)
+            touches_edge1 = (r == 0)
+            touches_edge2 = (r == self.N - 1)
+        else:
+            edge1_root, edge2_root = self._find(self.BLUE_LEFT), self._find(self.BLUE_RIGHT)
+            touches_edge1 = (c == 0)
+            touches_edge2 = (c == self.N - 1)
+
+        # Check neighbours of the same colour
+        for neighbour in self.NEIGHBOURS[index]:
+            if self._state[neighbour] == colour:
+                root = self._find(neighbour)
+                if root == edge1_root:
+                    touches_edge1 = True
+                if root == edge2_root:
+                    touches_edge2 = True
+
+                # Return early if this move means it will connect the two edges
+                if touches_edge1 and touches_edge2:
+                    return True
+
+        # Iterated over the neighbours and never returned True, so this must not be a winning move
+        return False
+
     def _remove_move(self, move: int) -> None:
         """Efficient removal of a move in O(1) time."""
         move_index = self._move_to_index[move]
-        last_index = len(self.possible_moves) - 1
-        last_move = self.possible_moves[last_index]
-        self.possible_moves[move_index] = last_move
+        last_index = len(self.legal_moves) - 1
+        last_move = self.legal_moves[last_index]
+        self.legal_moves[move_index] = last_move
         self._move_to_index[last_move] = move_index
-        self.possible_moves.pop()
+        self.legal_moves.pop()
         self._move_to_index[move] = -1 # Mark as removed
 
     # Disjoint Union Set Functions

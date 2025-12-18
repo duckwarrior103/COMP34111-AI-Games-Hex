@@ -13,7 +13,7 @@ from src.Move import Move
 class MCTS:
 
     # Hyperparameters
-    EXPLORATION_WEIGHT = 0.7
+    EXPLORATION_WEIGHT = 0.5
     RAVE_K = 200
     TIME_LIMIT = 1.0
     MAX_ITERATIONS = 2000
@@ -26,6 +26,15 @@ class MCTS:
 
     def run(self) -> Move:
         """Run the MCTS algorithm, returning the best move."""
+        # 1. Check for a forced move, in which case we can skip MCTS altogether and just play that
+        forced_move = self._root.board.find_forced_move(self._root.colour)
+        if forced_move:
+            r, c = divmod(forced_move, DisjointSetBoard.N)
+            for i in range(10):
+                print(f"Forced move: {r, c}")
+            return Move(r, c)
+
+        # 2. Otherwise, run MCTS to determine the best move
         end_time = time.time() + self.TIME_LIMIT
         iters_left = self.MAX_ITERATIONS
 
@@ -93,7 +102,7 @@ class MCTS:
         current_colour = node.colour
 
         # Play randomly until the board is full
-        moves_to_play = board.possible_moves[:]
+        moves_to_play = board.legal_moves[:]
         shuffle(moves_to_play)
         for move in moves_to_play:
             board.place(move, current_colour)
