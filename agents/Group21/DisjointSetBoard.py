@@ -17,7 +17,7 @@ class DisjointSetBoard:
     NEIGHBOUR_OFFSETS = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]
 
     # Initialise after class declaration
-    NEIGHBOURS: list[list[int]] | None = None
+    NEIGHBOURS: list[set[int]] | None = None
 
     def __init__(self):
         self._state = [0] * self.SIZE # A 1D coordinate system
@@ -79,19 +79,32 @@ class DisjointSetBoard:
         else:
             return None
 
-    def find_forced_move(self, colour: Colour) -> int | None:
+    def find_forced_move(self, colour: Colour, opp_move: int | None) -> int | None:
         """Find a forced move, if any, for the given colour."""
-        for move in self.legal_moves:
-            if self.is_winning_move(move, colour):
-                return move
+        block_move = None
 
-        # Can be more than one losing move that we need to block, but here we just return the first we find
-        # Because if there's more than one we're cooked anyway
-        for move in self.legal_moves:
-            if self.is_winning_move(move, Colour.opposite(colour)):
-                return move
+        # Winning / losing moves are only possible from round 21 onwards
+        if self.SIZE - len(self.legal_moves) >= 21:
+            for move in self.legal_moves:
+                # Check if this move is a winning move -> return immediately if it is
+                if self.is_winning_move(move, colour):
+                    return move
 
-        return None
+                # Otherwise, check if this is a winning move for the opponent -> we need to block it
+                # Save it in case we don't find a winning move for ourselves, but don't return immediately
+                # block_move can get updated multiple times theoretically,
+                # but if there's more than one losing move we're already cooked anyway
+                if self.is_winning_move(move, Colour.opposite(colour)):
+                    block_move = move
+
+        # No blocking move required, check to see if we need to save any bridge pairs
+        # Only check if the opponent previously played a move (i.e. this is not the first turn)
+        if not block_move and opp_move:
+            save_bridge_move = self._find_save_bridge_move(colour, opp_move)
+            if save_bridge_move:
+                return save_bridge_move
+
+        return block_move
 
     def is_winning_move(self, index: int, colour: Colour) -> bool:
         """Does placing this move here with the given colour result in an immediate win?"""
@@ -123,6 +136,37 @@ class DisjointSetBoard:
 
         # Iterated over the neighbours and never returned True, so this must not be a winning move
         return False
+
+    def _find_save_bridge_move(self, colour: Colour, opp_move: int) -> int | None:
+        """Finds save bridge moves, if any, based off the opponent's move."""
+        colour = 1 if colour == Colour.RED else 2
+
+        # Given the opponent's move, find all neighbours of that move that are our colour
+        neighbours = [move for move in DisjointSetBoard.NEIGHBOURS[opp_move] if self._state[move] == colour]
+        # Must have at least two neighbours of our colour for there to be a bridge
+        if len(neighbours) < 2:
+            return None
+
+        for i in range(len(neighbours)):
+            for j in range(i + 1, len(neighbours)):
+                n1, n2 = neighbours[i], neighbours[j]
+
+                # If they are neighbours of each other, then this forms a triangle and not a bridge / straight line
+                if n1 in self.NEIGHBOURS[n2]: continue
+
+                # Otherwise, check each neighbour of n1.
+                # If the neighbour is:
+                # 1. A common neighbour between the two
+                # 2. Is empty
+                # 3. Not the opponent's move (already checked by 2.)
+                # Then a bridge pair is being threatened - return immediately
+                # TODO: Determine which bridge to save if more than one exists
+
+                for common_n in self.NEIGHBOURS[n1]:
+                    if self._state[common_n] == 0 and common_n in self.NEIGHBOURS[n2]:
+                        return common_n
+
+        return None
 
     def _remove_move(self, move: int) -> None:
         """Efficient removal of a move in O(1) time."""
@@ -162,11 +206,11 @@ class DisjointSetBoard:
 
 # Precompute neighbours
 DisjointSetBoard.NEIGHBOURS = [
-    [
+    set(
         r * DisjointSetBoard.N + c
         for dr, dc in DisjointSetBoard.NEIGHBOUR_OFFSETS
         for (r, c) in [(index // DisjointSetBoard.N + dr, index % DisjointSetBoard.N + dc)]
         if 0 <= r < DisjointSetBoard.N and 0 <= c < DisjointSetBoard.N
-    ]
+    )
     for index in range(DisjointSetBoard.SIZE)
 ]

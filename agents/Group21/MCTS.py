@@ -27,11 +27,9 @@ class MCTS:
     def run(self) -> Move:
         """Run the MCTS algorithm, returning the best move."""
         # 1. Check for a forced move, in which case we can skip MCTS altogether and just play that
-        forced_move = self._root.board.find_forced_move(self._root.colour)
+        forced_move = self._root.board.find_forced_move(self._root.colour, self._root.prev_move)
         if forced_move:
             r, c = divmod(forced_move, DisjointSetBoard.N)
-            for i in range(10):
-                print(f"Forced move: {r, c}")
             return Move(r, c)
 
         # 2. Otherwise, run MCTS to determine the best move
@@ -70,9 +68,12 @@ class MCTS:
             self._root.parent = None
         # Otherwise, create a completely new root node
         else:
-            if opp_move == MCTS.SWAP_MOVE:
+            # Reverse colours and if that was a swap move, but don't store it
+            if move == MCTS.SWAP_MOVE:
                 self.colour = Colour.opposite(self.colour)
-            self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
+                self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
+            else:
+                self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board), prev_move=move)
 
     def _select(self) -> MCTSNode:
         """Find an unexplored descendent of the root node."""

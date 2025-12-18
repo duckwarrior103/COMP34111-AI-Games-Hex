@@ -11,10 +11,12 @@ class MCTSNode:
         colour: Colour,
         board: DisjointSetBoard,
         parent: "MCTSNode | None" = None,
+        prev_move: int | None = None,
     ):
         self.board = board
         self.colour = colour
         self.parent = parent
+        self.prev_move = prev_move
 
         self.children: dict[int, MCTSNode] = {} # Move -> MCTSNode
         self.W = 0.0 # Total reward
@@ -36,11 +38,11 @@ class MCTSNode:
 
     def expand(self) -> 'MCTSNode':
         """
-        Searches first for any forced moves (immediate wins or losses).
+        Searches first for any forced moves (immediate wins, losses or save-bridges).
         If so, we return that move and prune any siblings.
         Otherwise, we expand with a random unexplored node.
         """
-        forced_move = self.board.find_forced_move(self.colour)
+        forced_move = self.board.find_forced_move(self.colour, self.prev_move)
         if forced_move:
             move = forced_move
             self.unexplored_moves.clear()
@@ -53,7 +55,8 @@ class MCTSNode:
         child_node = MCTSNode(
             colour=Colour.opposite(self.colour),
             board=board_copy,
-            parent=self
+            parent=self,
+            prev_move=move,
         )
         self.children[move] = child_node
         return child_node
