@@ -31,11 +31,11 @@ class SelfPlay:
         while not game.board.has_ended(current_player_colour):
             current_agent = game.players[current_player_colour].agent
             # get legal moves and improved policy from MCTS from current state 
-            legal_moves, pi = current_agent.mcts.run(game, simulations=self.simulations)
+            legal_moves, pi, pi_full = current_agent.mcts.run(game, simulations=self.simulations)
 
             # store training sample but without z yet
             states.append(encode_board(game.board, current_player_colour))
-            policies.append(pi)
+            policies.append(pi_full)
             players_to_move.append(current_player_colour)
 
             # Sample a move from the improved policy pi
