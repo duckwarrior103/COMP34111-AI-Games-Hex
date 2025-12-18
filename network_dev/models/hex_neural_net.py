@@ -69,6 +69,7 @@ class HexNeuralNet(nn.Module):
             nn.Tanh()
         )
         
+        
     def forward(self, X):
         out = self.input_conv(X)
         for residual_block in self.residual_tower:
@@ -97,10 +98,3 @@ class HexNeuralNet(nn.Module):
             policy_probs, value = self.forward(state_tensor)
             return policy_probs.squeeze(0).numpy(), value.item()
         
-# Test the HexNeuralNet
-model = HexNeuralNet()
-total_params = sum(p.numel() for p in model.parameters())
-print(f"Total parameters: {total_params}")
-probs, value = model(torch.randn(1, 3, 11, 11))
-print("Policy logits shape:", probs.shape)  # Expected: (1, 121)
-print("Value shape:", value.shape)          # Expected: (1, 1)
