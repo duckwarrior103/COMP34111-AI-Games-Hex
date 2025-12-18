@@ -4,14 +4,14 @@ from pathlib import Path
 import torch
 import torch.optim as optim
 import numpy as np 
-
+import argparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
 
 from network_dev.models.hex_neural_net import HexNeuralNet
 
-def load_data(batch_size=32):
+def load_data(batch_size=32, file_name="training_data_heuristic.pkl"):
     data = pickle.load(open("training_data_heuristic.pkl", "rb"))
     states = []
     policies = []
@@ -31,12 +31,12 @@ def load_data(batch_size=32):
 
     return dataloader
 
-def train(model, epochs=10, batch_size=32, lr=1e-3, device=None):
+def train(model, epochs=10, batch_size=32, lr=1e-3, device=None, file_name="training_data_heuristic.pkl"):
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.train()
 
-    dataloader = load_data(batch_size=batch_size)
+    dataloader = load_data(batch_size=batch_size, file_name=file_name)
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
@@ -83,9 +83,9 @@ def train(model, epochs=10, batch_size=32, lr=1e-3, device=None):
             f"Value: {total_value_loss:.4f}"
         )
 
-def create_train_and_save():
+def create_train_and_save(file_name="training_data_heu.pkl"):
     model = HexNeuralNet()
-    train(model)
+    train(model, file_name="training_data_heu.pkl")
 
     save_dir = PROJECT_ROOT / "saved_models"
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -96,5 +96,15 @@ def create_train_and_save():
     print(f"Model saved at {save_path}")
     return model
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--file",
+        "-f",
+        type=str,
+        default="training_data_self_play.pkl",
+        help="training data file"
+    )
+    args = parser.parse_args()
 
-create_train_and_save()
+    create_train_and_save(args.file)
