@@ -27,9 +27,15 @@ class AlphaZeroMCTS:
         s = self._board_to_string(game.board)
 
         # After simulations, build improved policy pi (π)
+        pi_full = np.zeros(121, dtype=np.float32)
         counts = [self.Nsa.get((s, a), 0) for a in self.Vs[s]]
         pi = np.array(counts) / sum(counts) if sum(counts) > 0 else np.ones(len(counts)) / len(counts)
-        return self.Vs[s], pi
+
+        for prob, (i, j) in zip(pi, self.Vs[s]):
+            idx = i * 11 + j
+            pi_full[idx] = prob
+
+        return self.Vs[s], pi, pi_full
 
     # Do one simulation given a state in game
     def search(self, board, player):
