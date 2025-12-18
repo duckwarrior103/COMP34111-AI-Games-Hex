@@ -50,7 +50,7 @@ def main():
         training_examples += examples
 
     # Save training examples
-    save_file = "training_data.pkl"
+    save_file = "training_data_self_play.pkl"
     with open(save_file, "wb") as f:
         pickle.dump(training_examples, f) 
 
