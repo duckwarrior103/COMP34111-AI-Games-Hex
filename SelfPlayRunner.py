@@ -47,6 +47,7 @@ def main():
 
     # Use command-line value for number of games
     num_games = args.num_games
+    print(f"Running {num_games} self-play games...")
     training_examples = []
 
     start_time = time.perf_counter()
