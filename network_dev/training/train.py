@@ -67,11 +67,15 @@ def train(model, epochs=10, batch_size=128, lr=1e-3, device=None,
             )
 
             # ----- Policy loss (KL divergence) -----
-            policy_loss = F.kl_div(
-                F.log_softmax(pred_policy_logits, dim=1),
-                target_policies,
-                reduction="batchmean"
-            )
+            # policy_loss = F.kl_div(
+            #     F.log_softmax(pred_policy_logits, dim=1),
+            #     target_policies,
+            #     reduction="batchmean"
+            # )
+            policy_loss = -torch.sum(
+                target_policies * F.log_softmax(pred_policy_logits, dim=1),
+                dim=1
+            ).mean()
 
             # ----- Total loss -----
             loss = value_loss + policy_loss
