@@ -96,5 +96,4 @@ class HexNeuralNet(nn.Module):
             self.to(device)
             state_tensor = torch.tensor(np.array(state), dtype=torch.float32).unsqueeze(0).to(device)  # Add batch dimension
             policy_probs, value = self.forward(state_tensor)
-            return policy_probs.squeeze(0).numpy(), value.item()
-        
+            return policy_probs.squeeze(0).cpu().numpy(), value.item()
