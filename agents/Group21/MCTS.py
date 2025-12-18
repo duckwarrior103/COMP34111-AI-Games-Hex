@@ -3,6 +3,7 @@ import math
 import time
 from random import choice, shuffle
 
+from agents.Group21 import VirtualConnection
 from agents.Group21.DisjointSetBoard import DisjointSetBoard
 from agents.Group21.MCTSNode import MCTSNode
 from src.Board import Board
@@ -93,19 +94,82 @@ class MCTS:
 
         return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
 
+    # def _simulate(self, node: MCTSNode) -> tuple[Colour, list[int]]:
+    #     """Do full board simulation."""
+    #     board = copy.deepcopy(node.board)
+    #     current_colour = node.colour
+
+    #     # Play randomly until the board is full
+    #     moves_to_play = board.possible_moves[:]
+    #     shuffle(moves_to_play)
+    #     for move in moves_to_play:
+    #         board.place(move, current_colour)
+    #         current_colour = Colour.opposite(current_colour)
+
+    #     return board.check_winner(), moves_to_play
+
+
+
     def _simulate(self, node: MCTSNode) -> tuple[Colour, list[int]]:
-        """Do full board simulation."""
+        """Simulate game with virtual connection awareness."""
         board = copy.deepcopy(node.board)
+        vc_helper = VirtualConnection(board.N)
         current_colour = node.colour
-
-        # Play randomly until the board is full
-        moves_to_play = board.possible_moves[:]
-        shuffle(moves_to_play)
-        for move in moves_to_play:
+        moves_played = []
+        
+        # Get the last move that was played before this simulation started
+        # This is the move that led to the current node's board state
+        last_board_move = None
+        if node.parent is not None:
+            # I think we look at the child of the parent as we are on the rollout to see what the best move us
+            for move, child in node.parent.children.items():
+                # We take the first node we see
+                if child is node:
+                    last_board_move = move
+                    break
+        
+        # Until the board state hasn't won we run this loop
+        while not board.check_winner():
+            # This is to see if we have to defend or attack move
+            forced_move = None
+            
+            # Check if we need to defend a threatened bridge
+            # Look at the last move (either from board history or simulation)
+            threatening_move = moves_played[-1] if moves_played else last_board_move
+            
+            if threatening_move is not None:
+                # Get bridges for the current player
+                my_bridges = vc_helper.find_all_bridges(board, current_colour)
+                
+                for bridge in my_bridges:
+                    if threatening_move in bridge['carrier']:
+                        # Opponent just played in one of our bridge holes!
+                        # Defend by playing in the other hole
+                        other_hole = [h for h in bridge['carrier'] if h != threatening_move][0]
+                        if board.is_empty_index(other_hole):
+                            forced_move = other_hole
+                            break
+            
+            # Choose move
+            if forced_move is not None:
+                move = forced_move
+            else:
+                # No bridge threatened - play randomly
+                moves_to_play = board.possible_moves
+                if not moves_to_play:
+                    break
+                move = choice(moves_to_play)
+            
+            # Execute move
             board.place(move, current_colour)
+            moves_played.append(move)
             current_colour = Colour.opposite(current_colour)
+        
+        return board.check_winner(), moves_played
 
-        return board.check_winner(), moves_to_play
+
+
+
 
     @staticmethod
     def _backpropagate(node: MCTSNode, winner: Colour, moves: list[int]) -> None:

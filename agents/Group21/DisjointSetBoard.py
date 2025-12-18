@@ -113,6 +113,18 @@ class DisjointSetBoard:
             self._ranks[x_root] +=1
         
         return True
+    
+    def get_player_cells(self, colour: Colour) -> list[tuple[int, int]]:
+        """Returns a list of (r, c) coordinates where the player has stones."""
+        target_value = 1 if colour == Colour.RED else 2
+        player_cells = []
+        
+        for index in range(self.SIZE):
+            if self._state[index] == target_value:
+                r, c = divmod(index, self.N)
+                player_cells.append((r, c))
+        
+        return player_cells
 
 
 # Precompute neighbours
