@@ -2,7 +2,7 @@ from src.Board import Board
 from src.Colour import Colour
 
 
-class DisjointSetBoard:
+class DisjointSetBoardV3:
 
     # Board size
     N = 11
@@ -31,13 +31,13 @@ class DisjointSetBoard:
         self._move_to_index = list(range(self.SIZE))
 
     @classmethod
-    def from_existing_board(cls, board: Board) -> 'DisjointSetBoard':
-        """Converts a Board to a DisjointSetBoard."""
+    def from_existing_board(cls, board: Board) -> 'DisjointSetBoardV3':
+        """Converts a Board to a DisjointSetBoardV3."""
         dsu_board = cls()
-        for r in range(DisjointSetBoard.N):
-            for c in range(DisjointSetBoard.N):
+        for r in range(DisjointSetBoardV3.N):
+            for c in range(DisjointSetBoardV3.N):
                 if board.tiles[r][c].colour is not None:
-                    index = r * DisjointSetBoard.N + c
+                    index = r * DisjointSetBoardV3.N + c
                     dsu_board.place(index, board.tiles[r][c].colour)
         return dsu_board
 
@@ -106,24 +106,6 @@ class DisjointSetBoard:
 
         return block_move
 
-    def find_simulation_forced_move(self, colour: Colour, opp_move: int | None) -> int | None:
-        """
-        A more efficient version of find_forced_move.
-        Avoid scanning all legal moves for winning moves.
-        Instead, check if the opponent's move has created a possible win for them by checking neighbours.
-        Also check for save-bridge moves.
-        """
-        opp_colour = Colour.opposite(colour)
-
-        # Losing moves are only available from move 21 onwards
-        if self.SIZE - len(self.legal_moves) >= 21:
-            for neighbour in self.NEIGHBOURS[opp_move]:
-                if self._state[neighbour] == 0:
-                    if self.is_winning_move(neighbour, opp_colour):
-                        return neighbour
-
-        return self._find_save_bridge_move(colour, opp_move)
-
     def is_winning_move(self, index: int, colour: Colour) -> bool:
         """Does placing this move here with the given colour result in an immediate win?"""
         colour = 1 if colour == Colour.RED else 2
@@ -155,14 +137,12 @@ class DisjointSetBoard:
         # Iterated over the neighbours and never returned True, so this must not be a winning move
         return False
 
-    # TODO: Precompute bridge pairs and the corresponding holes
-    # TODO: Determine which bridge to save if more than one exists
     def _find_save_bridge_move(self, colour: Colour, opp_move: int) -> int | None:
         """Finds save bridge moves, if any, based off the opponent's move."""
         colour = 1 if colour == Colour.RED else 2
 
         # Given the opponent's move, find all neighbours of that move that are our colour
-        neighbours = [move for move in DisjointSetBoard.NEIGHBOURS[opp_move] if self._state[move] == colour]
+        neighbours = [move for move in DisjointSetBoardV3.NEIGHBOURS[opp_move] if self._state[move] == colour]
         # Must have at least two neighbours of our colour for there to be a bridge
         if len(neighbours) < 2:
             return None
@@ -180,6 +160,8 @@ class DisjointSetBoard:
                 # 2. Is empty
                 # 3. Not the opponent's move (already checked by 2.)
                 # Then a bridge pair is being threatened - return immediately
+                # TODO: Determine which bridge to save if more than one exists
+
                 for common_n in self.NEIGHBOURS[n1]:
                     if self._state[common_n] == 0 and common_n in self.NEIGHBOURS[n2]:
                         return common_n
@@ -223,12 +205,12 @@ class DisjointSetBoard:
 
 
 # Precompute neighbours
-DisjointSetBoard.NEIGHBOURS = [
+DisjointSetBoardV3.NEIGHBOURS = [
     set(
-        r * DisjointSetBoard.N + c
-        for dr, dc in DisjointSetBoard.NEIGHBOUR_OFFSETS
-        for (r, c) in [(index // DisjointSetBoard.N + dr, index % DisjointSetBoard.N + dc)]
-        if 0 <= r < DisjointSetBoard.N and 0 <= c < DisjointSetBoard.N
+        r * DisjointSetBoardV3.N + c
+        for dr, dc in DisjointSetBoardV3.NEIGHBOUR_OFFSETS
+        for (r, c) in [(index // DisjointSetBoardV3.N + dr, index % DisjointSetBoardV3.N + dc)]
+        if 0 <= r < DisjointSetBoardV3.N and 0 <= c < DisjointSetBoardV3.N
     )
-    for index in range(DisjointSetBoard.SIZE)
+    for index in range(DisjointSetBoardV3.SIZE)
 ]
