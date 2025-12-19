@@ -117,6 +117,10 @@ if __name__ == "__main__":
     p1_name = args.player1.split(" ")[1]
     p2_name = args.player2.split(" ")[1]
 
+    # If the two names are the same, then append a 2 to the second player
+    if p1_name == p2_name:
+        p2_name += '2'
+
     start_time = time.time()
     wins, total, game_times = run_games(args.num_games, args.player1, p1_name, args.player2, p2_name)
     time_taken = time.time() - start_time

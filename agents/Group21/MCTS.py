@@ -14,19 +14,27 @@ class MCTS:
 
     # Hyperparameters
     EXPLORATION_WEIGHT = 0.5
-    RAVE_K = 200
+    RAVE_K = 500
     TIME_LIMIT = 1.0
-    MAX_ITERATIONS = 2000
 
-    SWAP_MOVE = -12 # (-1, -1) maps to -12
+    RED_OPENINGS = [(1, 2), (1, 8), (9, 2), (9, 8)]
+    CENTRE = 60 # (5, 5) -> 60
+    SWAP_MOVE = -12 # (-1, -1) -> -12
 
     def __init__(self, colour: Colour):
         self.colour = colour
         self._root: MCTSNode | None = None
+        self._swapped = False
 
     def run(self) -> Move:
         """Run the MCTS algorithm, returning the best move."""
-        # 1. Check for a forced move, in which case we can skip MCTS altogether and just play that
+        turn = DisjointSetBoard.SIZE - len(self._root.board.legal_moves)
+
+        # 1. An opening move - play deterministically from our opening book
+        if turn < 2:
+            return self._opening_book(turn)
+
+        # 2. Check for a forced move, in which case we can skip MCTS altogether and just play that
         forced_move = self._root.board.find_forced_move(self._root.colour, self._root.prev_move)
         if forced_move:
             r, c = divmod(forced_move, DisjointSetBoard.N)
@@ -34,14 +42,12 @@ class MCTS:
 
         # 2. Otherwise, run MCTS to determine the best move
         end_time = time.time() + self.TIME_LIMIT
-        iters_left = self.MAX_ITERATIONS
 
-        while iters_left > 0 and time.time() < end_time:
+        while time.time() < end_time:
             leaf = self._select()
             child = leaf.expand() if not leaf.is_terminal else leaf
             winner, moves = self._simulate(child)
             self._backpropagate(child, winner, moves)
-            iters_left -= 1
 
         if not self._root.children:
             move = random.choice(self._root.unexplored_moves)
@@ -68,12 +74,34 @@ class MCTS:
             self._root.parent = None
         # Otherwise, create a completely new root node
         else:
-            # Reverse colours and if that was a swap move, but don't store it
+            # Reverse colours if move was swap
             if move == MCTS.SWAP_MOVE:
+                self._swapped = True
                 self.colour = Colour.opposite(self.colour)
-                self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board))
+                self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board), prev_move=self._root.prev_move)
             else:
                 self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board), prev_move=move)
+
+    def _opening_book(self, turn: int) -> Move | None:
+        """A naive opening book for rounds 1 and 2."""
+        # Red - take a fair opening that blue will never 100% swap with
+        if turn == 0:
+            return Move(*random.choice(self.RED_OPENINGS))
+        # Blue - two possible scenarios
+        elif turn == 1:
+            # Other person has swapped with us, take centre guaranteed as we never play centre
+            if self._swapped:
+                return Move(5, 5)
+            # We are true Blue
+            else:
+                # Swap moves if the move is in the centre
+                if self._root.prev_move == self.CENTRE or self._root.prev_move in DisjointSetBoard.NEIGHBOURS[self.CENTRE]:
+                    return Move(-1, -1)
+                # Otherwise take centre ourselves
+                else:
+                    return Move(5, 5)
+        else:
+            raise ValueError("No openings available for turns >= 2")
 
     def _select(self) -> MCTSNode:
         """Find an unexplored descendent of the root node."""
@@ -92,8 +120,8 @@ class MCTS:
 
             rave_W, rave_N = parent.rave_W[move], parent.rave_N[move]
             amaf = rave_W / rave_N
-            alpha = max(0.0, (MCTS.RAVE_K - child.N) / MCTS.RAVE_K)
-            return alpha * amaf + (1 - alpha) * exploit + explore
+            beta = math.sqrt(MCTS.RAVE_K / (3 * child.N + MCTS.RAVE_K))
+            return beta * amaf + (1 - beta) * exploit + explore
 
         return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
 
@@ -118,7 +146,7 @@ class MCTS:
         current_node = node
         while current_node is not None:
             # MCTS update
-            if current_node.colour == winner:
+            if current_node.colour != winner:
                 current_node.W += 1
             current_node.N += 1
 
