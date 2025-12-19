@@ -1,0 +1,175 @@
+import copy
+import math
+import random
+import time
+
+from agents.Group21.DisjointSetBoard import DisjointSetBoard
+from agents.Group21.MCTSNode import MCTSNode
+from src.Board import Board
+from src.Colour import Colour
+from src.Move import Move
+
+
+class MCTS:
+
+    # Hyperparameters
+    EXPLORATION_WEIGHT = 0.5
+    RAVE_K = 500
+    TIME_LIMIT = 1.0
+
+    RED_OPENINGS = [(1, 2), (1, 8), (9, 2), (9, 8)]
+    CENTRE = 60 # (5, 5) -> 60
+    SWAP_MOVE = -12 # (-1, -1) -> -12
+
+    def __init__(self, colour: Colour):
+        self.colour = colour
+        self._root: MCTSNode | None = None
+        self._swapped = False
+
+    def run(self) -> Move:
+        """Run the MCTS algorithm, returning the best move."""
+        turn = DisjointSetBoard.SIZE - len(self._root.board.legal_moves)
+
+        # 1. An opening move - play deterministically from our opening book
+        if turn < 2:
+            return self._opening_book(turn)
+
+        # 2. Check for a forced move, in which case we can skip MCTS altogether and just play that
+        forced_move = self._root.board.find_forced_move(self._root.colour, self._root.prev_move)
+        if forced_move:
+            r, c = divmod(forced_move, DisjointSetBoard.N)
+            return Move(r, c)
+
+        # 2. Otherwise, run MCTS to determine the best move
+        end_time = time.time() + self.TIME_LIMIT
+
+        while time.time() < end_time:
+            leaf = self._select()
+            child = leaf.expand() if not leaf.is_terminal else leaf
+            winner, moves = self._simulate(child)
+            self._backpropagate(child, winner, moves)
+
+        if not self._root.children:
+            move = random.choice(self._root.unexplored_moves)
+            r, c = divmod(move, DisjointSetBoard.N)
+            return Move(r, c)
+
+        # Pick the child with the highest visit count
+        best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].W))
+
+        # Update to new state
+        self._root = best_child
+        self._root.parent = None
+
+        r, c = divmod(best_move, DisjointSetBoard.N)
+        return Move(r, c)
+
+    def update(self, board: Board, opp_move: Move | None) -> None:
+        """Given a move, find the corresponding child of the root and set that as the new root."""
+        move = (opp_move.x * DisjointSetBoard.N + opp_move.y) if opp_move is not None else None
+
+        # Reuse the tree if possible
+        if self._root is not None and move is not None and move in self._root.children:
+            self._root = self._root.children[move]
+            self._root.parent = None
+        # Otherwise, create a completely new root node
+        else:
+            # Reverse colours if move was swap
+            if move == MCTS.SWAP_MOVE:
+                self._swapped = True
+                self.colour = Colour.opposite(self.colour)
+                self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board), prev_move=self._root.prev_move)
+            else:
+                self._root = MCTSNode(self.colour, DisjointSetBoard.from_existing_board(board), prev_move=move)
+
+    def _opening_book(self, turn: int) -> Move | None:
+        """A naive opening book for rounds 1 and 2."""
+        # Red - take a fair opening that blue will never 100% swap with
+        if turn == 0:
+            return Move(*random.choice(self.RED_OPENINGS))
+        # Blue - two possible scenarios
+        elif turn == 1:
+            # Other person has swapped with us, take centre guaranteed as we never play centre
+            if self._swapped:
+                return Move(5, 5)
+            # We are true Blue
+            else:
+                # Swap moves if the move is in the centre
+                if self._root.prev_move == self.CENTRE or self._root.prev_move in DisjointSetBoard.NEIGHBOURS[self.CENTRE]:
+                    return Move(-1, -1)
+                # Otherwise take centre ourselves
+                else:
+                    return Move(5, 5)
+        else:
+            raise ValueError("No openings available for turns >= 2")
+
+    def _select(self) -> MCTSNode:
+        """Find an unexplored descendent of the root node."""
+        node = self._root
+        while not node.is_terminal and node.is_fully_explored:
+            node = self._select_best_child(node)
+        return node
+
+    @staticmethod
+    def _select_best_child(parent: MCTSNode) -> MCTSNode:
+        """Select the best child node based off UCT-RAVE."""
+        log_parent_N = math.log(parent.N)
+        def uct_rave(move: int, child: MCTSNode) -> float:
+            exploit = child.W / child.N
+            explore = MCTS.EXPLORATION_WEIGHT * math.sqrt(log_parent_N / child.N)
+
+            rave_W, rave_N = parent.rave_W[move], parent.rave_N[move]
+            amaf = rave_W / rave_N
+            beta = math.sqrt(MCTS.RAVE_K / (3 * child.N + MCTS.RAVE_K))
+            return beta * amaf + (1 - beta) * exploit + explore
+
+        return max(parent.children.items(), key=lambda item: uct_rave(item[0], item[1]))[1]
+
+    def _simulate(self, node: MCTSNode) -> tuple[Colour, list[int]]:
+        """Rollout until a winner exists."""
+        board = copy.deepcopy(node.board)
+        current_colour = node.colour
+        previous_move = None
+        moves_played = []
+
+        winner = None
+        while winner is None:
+            move = None
+            if previous_move is not None:
+                move = board.find_simulation_forced_move(current_colour, previous_move)
+            if move is None:
+                move = random.choice(board.legal_moves)
+
+            board.place(move, current_colour)
+            moves_played.append(move)
+
+            winner = board.check_winner()
+            if winner is not None:
+                return winner, moves_played
+
+            current_colour = Colour.opposite(current_colour)
+            previous_move = move
+
+        return winner, moves_played
+
+    @staticmethod
+    def _backpropagate(node: MCTSNode, winner: Colour, moves: list[int]) -> None:
+        """Backpropagates rewards and visits until the root node is reached"""
+        start_colour = node.colour
+        current_node = node
+        while current_node is not None:
+            # MCTS update
+            if current_node.colour != winner:
+                current_node.W += 1
+            current_node.N += 1
+
+            # RAVE update
+            # Even indices are moves that the original node made
+            # Odd indices were made by the other node
+            offset = 0 if current_node.colour == start_colour else 1
+            for i in range(offset, len(moves), 2):
+                if current_node.colour == winner:
+                    current_node.rave_W[moves[i]] += 1
+                current_node.rave_N[moves[i]] += 1
+
+            current_node = current_node.parent
