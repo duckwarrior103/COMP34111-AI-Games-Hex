@@ -107,9 +107,9 @@ def run_games(num_games: int, player1: str, player1_name: str, player2: str, pla
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--num_games", type=int, default=10)
-    parser.add_argument("-p1", "--player1", type=str, default="agents.Group21.MCTSAgent MCTSAgent")
-    parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.v3.MCTSAgentV3 MCTSAgentV3")
-    # parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.RandomAgent RandomAgent")
+    parser.add_argument("-p1", "--player1", type=str, default="agents.Group21.v0.MCTSAgentV0 MCTSAgentV0")
+    # parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.v2.MCTSAgentV2 MCTSAgentV2")
+    parser.add_argument("-p2", "--player2", type=str, default="agents.Group21.RandomAgent RandomAgent")
 
     args = parser.parse_args()
 
@@ -125,7 +125,6 @@ if __name__ == "__main__":
     wins, total, game_times = run_games(args.num_games, args.player1, p1_name, args.player2, p2_name)
     time_taken = time.time() - start_time
 
-    # TODO: Fix this ugly ass code if we have time
     win_rate = wins / total
     avg_game_time = sum(game_times) / len(game_times)
     old_avg_wr, old_avg_game_time = get_average_statistics(p1_name, p2_name) or (win_rate, avg_game_time)

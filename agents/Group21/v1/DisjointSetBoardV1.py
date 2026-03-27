@@ -15,16 +15,9 @@ class DisjointSetBoardV1:
     BLUE_RIGHT = SIZE + 3
 
     NEIGHBOUR_OFFSETS = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]
-    BRIDGE_PATTERNS = [
-        (1, 0, 0, 1),
-        (0, 1, 1, 0),
-        (-1, 0, 0, -1),
-        (0, -1, -1, 0),
-    ]
 
-    # Initialise these after class declaration
+    # Initialise after class declaration
     NEIGHBOURS: list[list[int]] | None = None
-    BRIDGE_PAIRS: list[list[tuple[int, int]]] | None = None
 
     def __init__(self):
         self._state = [0] * self.SIZE # A 1D coordinate system
@@ -118,25 +111,6 @@ DisjointSetBoardV1.NEIGHBOURS = [
         for dr, dc in DisjointSetBoardV1.NEIGHBOUR_OFFSETS
         for (r, c) in [(index // DisjointSetBoardV1.N + dr, index % DisjointSetBoardV1.N + dc)]
         if 0 <= r < DisjointSetBoardV1.N and 0 <= c < DisjointSetBoardV1.N
-    ]
-    for index in range(DisjointSetBoardV1.SIZE)
-]
-
-# Precompute bridge pairs
-DisjointSetBoardV1.BRIDGE_PAIRS = [
-    [
-        ((r1 * DisjointSetBoardV1.N + c1), (r2 * DisjointSetBoardV1.N + c2))
-        for (dr1, dc1, dr2, dc2) in DisjointSetBoardV1.BRIDGE_PATTERNS
-        for (r1, c1, r2, c2) in [
-            (
-                index // DisjointSetBoardV1.N + dr1,
-                index % DisjointSetBoardV1.N + dc1,
-                index // DisjointSetBoardV1.N + dr2,
-                index % DisjointSetBoardV1.N + dc2
-            )
-        ]
-        if 0 <= r1 < DisjointSetBoardV1.N and 0 <= c1 < DisjointSetBoardV1.N and
-           0 <= r2 < DisjointSetBoardV1.N and 0 <= c2 < DisjointSetBoardV1.N
     ]
     for index in range(DisjointSetBoardV1.SIZE)
 ]

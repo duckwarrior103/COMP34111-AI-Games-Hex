@@ -1,0 +1,82 @@
+{
+    "MCTSAgent-MCTSAgentFri": {
+        "games": 1504,
+        "avg_win_rate": 0.6429521276595747,
+        "avg_game_time": 25.87283469039075
+    },
+    "MCTSAgent-RandomAgent": {
+        "games": 250,
+        "avg_win_rate": 1.0,
+        "avg_game_time": 13.722168691635131
+    },
+    "MCTSAgent-MCTSAgentOld": {
+        "games": 470,
+        "avg_win_rate": 0.9319148936170213,
+        "avg_game_time": 20.126070260494313
+    },
+    "MCTSAgent-MCTSAgentV1": {
+        "games": 50,
+        "avg_win_rate": 0.46,
+        "avg_game_time": 9.37419699192047
+    },
+    "MCTSAgent-MCTSAgentV2": {
+        "games": 3300,
+        "avg_win_rate": 0.6760606060606058,
+        "avg_game_time": 22.863324907692995
+    },
+    "MCTSAgentV2-MCTSAgent": {
+        "games": 250,
+        "avg_win_rate": 0.22,
+        "avg_game_time": 23.820230598449708
+    },
+    "MCTSAgent-MCTSAgent": {
+        "games": 100,
+        "avg_win_rate": 1.0,
+        "avg_game_time": 26.25408944129944
+    },
+    "MCTSAgent-MCTSAgent2": {
+        "games": 200,
+        "avg_win_rate": 0.38,
+        "avg_game_time": 21.337781854867934
+    },
+    "MCTSAgent-MCTSAgentV3": {
+        "games": 970,
+        "avg_win_rate": 0.45670103092783504,
+        "avg_game_time": 25.7475522164217
+    },
+    "MCTSAgentV3-MCTSAgent": {
+        "games": 50,
+        "avg_win_rate": 0.36,
+        "avg_game_time": 25.70273600101471
+    },
+    "RandomAgent-MCTSAgent": {
+        "games": 50,
+        "avg_win_rate": 0.0,
+        "avg_game_time": 10.740769081115722
+    },
+    "MCTSAgentV1-RandomAgent": {
+        "games": 100,
+        "avg_win_rate": 1.0,
+        "avg_game_time": 18.07063521385193
+    },
+    "MCTSAgentV0-RandomAgent": {
+        "games": 240,
+        "avg_win_rate": 0.5708333333333333,
+        "avg_game_time": 24.998892622192702
+    },
+    "MCTSAgentV3-MCTSAgentV2": {
+        "games": 220,
+        "avg_win_rate": 0.8545454545454545,
+        "avg_game_time": 18.532776031710885
+    },
+    "MCTSAgentV1-MCTSAgentV0": {
+        "games": 100,
+        "avg_win_rate": 0.99,
+        "avg_game_time": 32.25473189592361
+    },
+    "MCTSAgentV2-MCTSAgentV1": {
+        "games": 100,
+        "avg_win_rate": 1.0,
+        "avg_game_time": 17.930492947101595
+    }
+}

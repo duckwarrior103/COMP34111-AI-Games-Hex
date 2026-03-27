@@ -33,11 +33,6 @@ class MCTSV2:
             self._backpropagate(child, reward, moves)
             iters_left -= 1
 
-        if not self._root.children:
-            move = choice(self._root.unexplored_moves)
-            r, c = divmod(move, DisjointSetBoardV2.N)
-            return Move(r, c)
-
         # Pick the child with the highest visit count
         best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].W))
 

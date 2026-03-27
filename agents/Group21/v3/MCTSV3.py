@@ -15,7 +15,7 @@ class MCTSV3:
     # Hyperparameters
     EXPLORATION_WEIGHT = 0.5
     RAVE_K = 500
-    TIME_LIMIT = 1.0
+    TIME_LIMIT = 0.5
 
     RED_OPENINGS = [(1, 2), (1, 8), (9, 2), (9, 8)]
     CENTRE = 60 # (5, 5) -> 60
@@ -48,11 +48,6 @@ class MCTSV3:
             child = leaf.expand() if not leaf.is_terminal else leaf
             winner, moves = self._simulate(child)
             self._backpropagate(child, winner, moves)
-
-        if not self._root.children:
-            move = random.choice(self._root.unexplored_moves)
-            r, c = divmod(move, DisjointSetBoardV3.N)
-            return Move(r, c)
 
         # Pick the child with the highest visit count
         best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].W))

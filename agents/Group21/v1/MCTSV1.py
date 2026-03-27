@@ -35,11 +35,6 @@ class MCTSV1:
             self._backpropagate(child, reward, moves)
             iters_left -= 1
 
-        if not self._root.children:
-            move = choice(self._root.unexplored_moves)
-            r, c = divmod(move, DisjointSetBoardV1.N)
-            return Move(r, c)
-
         # Pick the child with the highest visit count
         best_move, best_child = max(self._root.children.items(), key=lambda c: (c[1].N, c[1].Q))
 
@@ -96,77 +91,12 @@ class MCTSV1:
         simulated_moves = []
         winner = board.check_winner()
         while winner is None:
-            moves = self._biased_simulation_moves(board, current_colour)
-            move = choice(moves)
+            move = choice(list(board.possible_moves))
             simulated_moves.append(move)
             winner = board.place(move, current_colour)
             current_colour = Colour.opposite(current_colour)
 
         return 1 if board.check_winner() == self._root.colour else -1, simulated_moves
-
-    def _biased_simulation_moves(self, board: DisjointSetBoardV1, colour: Colour) -> list[int]:
-        possible_moves = board.possible_moves
-
-        # Prefer moves adjacent to existing own color
-        good = []
-        for move in possible_moves:
-            for neighbour in DisjointSetBoardV1.NEIGHBOURS[move]:
-                if (board.get_cell(neighbour)) == colour:
-                    good.append(move)
-                    break
-
-        if good:
-            return good
-
-        # If no adjacent moves exist, use heuristic scoring
-        scored = [(self._move_heuristic(board, move, colour), move) for move in possible_moves]
-        scored.sort(reverse=True)
-
-        # Keep a maximum of the 4 best moves
-        return [move for _, move in scored[:max(4, len(scored)//5)]]
-
-    def _move_heuristic(self, board: DisjointSetBoardV1, move: int, colour: Colour) -> float:
-        x, y = divmod(move, board.N)
-        n = board.N
-        opponent_colour = Colour.opposite(self.colour)
-
-        # Compute distance to the target winning side
-        if colour == Colour.RED:
-            dist_goal = min(y, n - 1 - y)
-            goal_axis = 1  # y-direction
-        else:
-            dist_goal = min(x, n - 1 - x)
-            goal_axis = 0  # x-direction
-
-        # Computes center preference (the more center the better)
-        center_score = -((x - n / 2) ** 2 + (y - n / 2) ** 2)
-
-        # When adjacent is same color
-        adj_bonus = 0
-        for neighbour in DisjointSetBoardV1.NEIGHBOURS[move]:
-            if board.get_cell(neighbour) == colour:
-                adj_bonus += 3
-            if board.get_cell(neighbour) == opponent_colour:
-                adj_bonus -= 1
-
-        # Diagonal cells, where empty space in between is almost impossible for opponent to break
-        bridge_bonus = 0
-        for move1, move2 in DisjointSetBoardV1.BRIDGE_PAIRS[move]:
-            r1, c1 = divmod(move1, board.N)
-            r2, c2 = divmod(move2, board.N)
-
-            if board.get_cell(move1) == colour and board.get_cell(move2) == colour:
-                if goal_axis == 1 and r1 != r2:
-                    bridge_bonus += 6
-                if goal_axis == 0 and c1 != c2:
-                    bridge_bonus += 6
-
-        return (
-            -2 * dist_goal +
-            adj_bonus +
-            bridge_bonus +
-            0.15 * center_score
-        )
 
     @staticmethod
     def _backpropagate(node: MCTSNodeV1, reward: float, moves: list[int]) -> None:
