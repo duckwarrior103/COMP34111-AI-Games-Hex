@@ -1,0 +1,61 @@
+============================================================
+  PROFILE: V3  (200 iterations)
+============================================================
+
+--- Top by cumulative time ---
+         2011803 function calls (1713612 primitive calls) in 0.382 seconds
+
+   Ordered by: cumulative time
+   List reduced from 50 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      200    0.000    0.000    0.382    0.002 profile_agents.py:49(one_iteration_v3)
+249238/400    0.129    0.000    0.269    0.001 copy.py:119(deepcopy)
+      400    0.001    0.000    0.267    0.001 copy.py:248(_reconstruct)
+      400    0.001    0.000    0.264    0.001 copy.py:218(_deepcopy_dict)
+     2000    0.051    0.000    0.258    0.000 copy.py:192(_deepcopy_list)
+      200    0.007    0.000    0.219    0.001 MCTSV3.py:123(_simulate)
+      200    0.001    0.000    0.152    0.001 MCTSNodeV3.py:39(expand)
+    23719    0.022    0.000    0.061    0.000 DisjointSetBoardV3.py:48(place)
+   498476    0.040    0.000    0.040    0.000 {method 'get' of 'dict' objects}
+      400    0.007    0.000    0.029    0.000 random.py:354(shuffle)
+    36195    0.012    0.000    0.027    0.000 DisjointSetBoardV3.py:188(_union)
+    46638    0.014    0.000    0.022    0.000 random.py:245(_randbelow_with_getrandbits)
+   246438    0.016    0.000    0.016    0.000 {method 'append' of 'list' objects}
+   255238    0.016    0.000    0.016    0.000 {built-in method builtins.id}
+123127/73774    0.015    0.000    0.015    0.000 DisjointSetBoardV3.py:182(_find)
+      200    0.000    0.000    0.015    0.000 MCTSNodeV3.py:9(__init__)
+   246438    0.013    0.000    0.013    0.000 copy.py:173(_deepcopy_atomic)
+    23719    0.008    0.000    0.011    0.000 DisjointSetBoardV3.py:171(_remove_move)
+      200    0.000    0.000    0.008    0.000 MCTSV3.py:101(_select)
+       81    0.000    0.000    0.008    0.000 MCTSV3.py:108(_select_best_child)
+
+
+
+--- Top by total time ---
+         2011803 function calls (1713612 primitive calls) in 0.382 seconds
+
+   Ordered by: internal time
+   List reduced from 50 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+249238/400    0.129    0.000    0.269    0.001 copy.py:119(deepcopy)
+     2000    0.051    0.000    0.258    0.000 copy.py:192(_deepcopy_list)
+   498476    0.040    0.000    0.040    0.000 {method 'get' of 'dict' objects}
+    23719    0.022    0.000    0.061    0.000 DisjointSetBoardV3.py:48(place)
+   246438    0.016    0.000    0.016    0.000 {method 'append' of 'list' objects}
+   255238    0.016    0.000    0.016    0.000 {built-in method builtins.id}
+123127/73774    0.015    0.000    0.015    0.000 DisjointSetBoardV3.py:182(_find)
+    46638    0.014    0.000    0.022    0.000 random.py:245(_randbelow_with_getrandbits)
+   246438    0.013    0.000    0.013    0.000 copy.py:173(_deepcopy_atomic)
+    36195    0.012    0.000    0.027    0.000 DisjointSetBoardV3.py:188(_union)
+    23719    0.008    0.000    0.011    0.000 DisjointSetBoardV3.py:171(_remove_move)
+      400    0.007    0.000    0.029    0.000 random.py:354(shuffle)
+      200    0.007    0.000    0.219    0.001 MCTSV3.py:123(_simulate)
+    67217    0.004    0.000    0.004    0.000 {method 'getrandbits' of '_random.Random' objects}
+     9639    0.004    0.000    0.005    0.000 MCTSV3.py:112(uct_rave)
+    46638    0.004    0.000    0.004    0.000 {method 'bit_length' of 'int' objects}
+    23719    0.003    0.000    0.003    0.000 Colour.py:44(opposite)
+    23919    0.002    0.000    0.002    0.000 {method 'pop' of 'list' objects}
+      200    0.002    0.000    0.002    0.000 MCTSV3.py:137(_backpropagate)
+     9639    0.002    0.000    0.007    0.000 MCTSV3.py:121(<lambda>)

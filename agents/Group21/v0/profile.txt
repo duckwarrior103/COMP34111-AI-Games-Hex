@@ -1,0 +1,61 @@
+============================================================
+  PROFILE: V0  (200 iterations)
+============================================================
+
+--- Top by cumulative time ---
+         14131417 function calls (13382530 primitive calls) in 2.771 seconds
+
+   Ordered by: cumulative time
+   List reduced from 69 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      200    0.002    0.000    2.771    0.014 profile_agents.py:28(one_iteration_v0)
+      200    0.593    0.003    2.284    0.011 MCTSV0.py:74(_simulate)
+    21260    0.082    0.000    0.960    0.000 Board.py:58(has_ended)
+541600/400    0.382    0.000    0.867    0.002 copy.py:119(deepcopy)
+49200/400    0.077    0.000    0.865    0.002 copy.py:248(_reconstruct)
+48800/400    0.078    0.000    0.862    0.002 copy.py:218(_deepcopy_dict)
+ 5200/800    0.017    0.000    0.854    0.001 copy.py:192(_deepcopy_list)
+      200    0.000    0.000    0.466    0.002 MCTSV0.py:70(_expand)
+      200    0.002    0.000    0.456    0.002 MCTSNodeV0.py:47(make_move)
+    21260    0.290    0.000    0.436    0.000 Board.py:101(clear_tiles)
+141293/35206    0.311    0.000    0.392    0.000 Board.py:108(DFS_colour)
+  3291555    0.182    0.000    0.182    0.000 Tile.py:30(colour)
+  2572460    0.146    0.000    0.146    0.000 Tile.py:44(clear_visit)
+  2535038    0.117    0.000    0.117    0.000 Board.py:180(tiles)
+  1132000    0.101    0.000    0.101    0.000 {method 'get' of 'dict' objects}
+    98400    0.014    0.000    0.061    0.000 copy.py:253(<genexpr>)
+   936969    0.055    0.000    0.055    0.000 Tile.py:41(is_visited)
+   748400    0.049    0.000    0.049    0.000 {built-in method builtins.id}
+   103200    0.031    0.000    0.048    0.000 copy.py:232(_keep_alive)
+    20779    0.010    0.000    0.029    0.000 random.py:345(choice)
+
+
+
+--- Top by total time ---
+         14131417 function calls (13382530 primitive calls) in 2.771 seconds
+
+   Ordered by: internal time
+   List reduced from 69 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      200    0.593    0.003    2.284    0.011 MCTSV0.py:74(_simulate)
+541600/400    0.382    0.000    0.867    0.002 copy.py:119(deepcopy)
+141293/35206    0.311    0.000    0.392    0.000 Board.py:108(DFS_colour)
+    21260    0.290    0.000    0.436    0.000 Board.py:101(clear_tiles)
+  3291555    0.182    0.000    0.182    0.000 Tile.py:30(colour)
+  2572460    0.146    0.000    0.146    0.000 Tile.py:44(clear_visit)
+  2535038    0.117    0.000    0.117    0.000 Board.py:180(tiles)
+  1132000    0.101    0.000    0.101    0.000 {method 'get' of 'dict' objects}
+    21260    0.082    0.000    0.960    0.000 Board.py:58(has_ended)
+48800/400    0.078    0.000    0.862    0.002 copy.py:218(_deepcopy_dict)
+49200/400    0.077    0.000    0.865    0.002 copy.py:248(_reconstruct)
+   936969    0.055    0.000    0.055    0.000 Tile.py:41(is_visited)
+   748400    0.049    0.000    0.049    0.000 {built-in method builtins.id}
+   103200    0.031    0.000    0.048    0.000 copy.py:232(_keep_alive)
+   437238    0.025    0.000    0.025    0.000 copy.py:173(_deepcopy_atomic)
+    49200    0.017    0.000    0.018    0.000 {method '__reduce_ex__' of 'object' objects}
+ 5200/800    0.017    0.000    0.854    0.001 copy.py:192(_deepcopy_list)
+      200    0.016    0.000    0.021    0.000 Board.py:187(_compute_shortest_winning_path)
+   158121    0.015    0.000    0.015    0.000 {method 'append' of 'list' objects}
+    98400    0.014    0.000    0.061    0.000 copy.py:253(<genexpr>)
